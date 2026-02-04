@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import User from "./models/User.js";
+import User from "./OrderManagement/models/User.js";
+import UserRole from "./OrderManagement/models/UserRole.js";
 
 dotenv.config();
 
@@ -22,7 +23,13 @@ const seedAdmin = async () => {
       email: "admin@test.com",
       passwordHash: "123456", // plain password (auto-hash hoga)
       role: "admin",
-      isActive: true
+      isActive: true,
+    });
+
+    const userRole = await UserRole.create({
+      user: admin._id,
+      role: "admin",
+      isActive: true,
     });
 
     console.log("✅ Admin created successfully");
@@ -30,7 +37,6 @@ const seedAdmin = async () => {
     console.log("Password: 123456");
 
     process.exit();
-
   } catch (error) {
     console.error("Seeder error:", error);
     process.exit(1);

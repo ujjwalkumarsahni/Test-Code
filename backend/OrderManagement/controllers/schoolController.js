@@ -50,9 +50,6 @@ export const createSchool = asyncHandler(async (req, res) => {
   });
 
   const populatedSchool = await School.findById(school._id)
-    .populate("currentTrainers", "basicInfo.fullName basicInfo.employeeId")
-    .populate("createdBy", "name email")
-    .populate("updatedBy", "name email");
 
   res.status(201).json({
     success: true,
@@ -77,10 +74,6 @@ export const getSchools = asyncHandler(async (req, res) => {
   }
 
   const schools = await School.find(query)
-    .populate("currentTrainers", "basicInfo.fullName basicInfo.employeeId")
-    .populate("createdBy", "name email")
-    .populate("updatedBy", "name email")
-    .sort({ createdAt: -1 });
 
   // Add virtuals to response
   const schoolsWithVirtuals = schools.map((school) => ({
@@ -114,16 +107,6 @@ export const getSchool = asyncHandler(async (req, res) => {
     });
   }
   const school = await School.findById(req.params?.id)
-    .populate({
-      path: "currentTrainers",
-      select: "basicInfo.fullName basicInfo.employeeId basicInfo.designation",
-      populate: {
-        path: "user",
-        select: "name email",
-      },
-    })
-    .populate("createdBy", "name email")
-    .populate("updatedBy", "name email");
 
   if (!school) {
     return res.status(400).json({

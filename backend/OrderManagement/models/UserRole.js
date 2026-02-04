@@ -11,11 +11,11 @@ const userRoleSchema = new mongoose.Schema({
     enum: ['teacher', 'student', 'admin', 'hr', 'employee'],
     required: true
   },
-  permissions: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Permission',
-    required: true
-  },
+  // permissions: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: 'Permission',
+  //   required: true
+  // },
   customPermissions: {
     // Override default permissions for specific user
     templates: {

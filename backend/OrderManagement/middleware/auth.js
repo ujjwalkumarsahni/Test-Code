@@ -32,7 +32,11 @@ export const authenticate = async (req, res, next) => {
     const userRole = await UserRole.findOne({ 
       user: user._id, 
       isActive: true 
-    }).populate('permissions');
+    })
+    // const userRole = await UserRole.findOne({ 
+    //   user: user._id, 
+    //   isActive: true 
+    // }).populate('permissions');
 
     if (!userRole) {
       return res.status(403).json({ 
