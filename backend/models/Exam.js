@@ -1,37 +1,63 @@
-import mongoose from 'mongoose'
+import mongoose from "mongoose";
 
 const examSchema = new mongoose.Schema({
-  school: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "School",
-    required: true
+
+  school:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"School",
+    required:true
   },
 
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Employee",
-    required: true
+  createdBy:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"Employee",
+    required:true
   },
 
-  title: String,
-  description: String,
+  title:{
+    type:String,
+    required:true,
+    trim:true
+  },
 
-  totalMarks: Number,
-  duration: Number, // minutes
+  description:String,
 
-  examDate: Date,
+  totalMarks:{
+    type:Number,
+    default:0
+  },
 
-  students: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Student"
+  duration:{
+    type:Number,
+    required:true
+  },
+
+  examDate:{
+    type:Date,
+    required:true
+  },
+
+  students:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"Student"
   }],
 
-  status: {
-    type: String,
-    enum: ["Draft", "Published", "Completed"],
-    default: "Draft"
+  status:{
+    type:String,
+    enum:["Draft","Published","Completed"],
+    default:"Draft"
   }
 
-}, { timestamps: true });
+},{timestamps:true});
 
-export default mongoose.model("Exam", examSchema);
+
+examSchema.virtual("questions",{
+  ref:"Question",
+  localField:"_id",
+  foreignField:"exam"
+});
+
+examSchema.set("toObject",{virtuals:true});
+examSchema.set("toJSON",{virtuals:true});
+
+export default mongoose.model("Exam",examSchema);

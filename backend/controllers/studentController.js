@@ -1,26 +1,49 @@
+import Student from "../models/student.js";
 import Employee from "../models/Employee.js";
-import Student from "../models/Student.js";
 
-export const registerStudent = async (req,res)=>{
-  const { employeeId, fullName, email } = req.body;
+/* ================= GET STUDENTS ================= */
 
-  const employee = await Employee.findById(employeeId);
+export const getStudents = async (req,res)=>{
+  try{
 
-  if(!employee){
-    return res.status(404).json({message:"Employee not found"});
+    // ADMIN
+    if(req.user.role==="admin"){
+      const students = await Student.find()
+        .populate("user","name email");
+
+      return res.json({
+        success:true,
+        data:students
+      });
+    }
+
+    // EMPLOYEE
+    if(req.user.role==="employee"){
+      const emp = await Employee.findOne({user:req.user._id});
+
+      const students = await Student.find({
+        school: emp.school
+      }).populate("user","name email");
+
+      return res.json({
+        success:true,
+        data:students
+      });
+    }
+
+    // STUDENT
+    if(req.user.role==="student"){
+      const student = await Student.findOne({
+        user:req.user._id
+      }).populate("user","name email");
+
+      return res.json({
+        success:true,
+        data:[student]
+      });
+    }
+
+  }catch(err){
+    res.status(500).json({msg:err.message});
   }
-
-  const schoolId = employee.school; // employee ka school
-
-  const student = await Student.create({
-    school: schoolId,
-    registeredBy: employeeId,
-    fullName,
-    email
-  });
-
-  res.json({
-    success:true,
-    data:student
-  });
 };

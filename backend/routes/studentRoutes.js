@@ -1,9 +1,14 @@
 import express from "express";
-import { registerStudent } from "../controllers/studentController.js";
+import { getStudents } from "../controllers/studentController.js";
+import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Register Student
-router.post("/", registerStudent);
+router.get(
+  "/",
+  protect,
+  getStudents
+);
+
 
 export default router;

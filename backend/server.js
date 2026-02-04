@@ -31,13 +31,20 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
 import authRoutes from "./routes/authRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import employeeRoutes from "./routes/employeeRoutes.js";
+import studentRoutes from "./routes/studentRoutes.js";
+import schoolRoutes from "./routes/schoolRoutes.js";
+import examRoutes from "./routes/examRoutes.js";
 
 
 app.use("/api/auth",authRoutes);
-
-
+app.use("/api/admin",adminRoutes);
+app.use("/api/employee",employeeRoutes);
+app.use("/api/student",studentRoutes);
+app.use("/api/schools",schoolRoutes);
+app.use("/api/exams",examRoutes);
 
 // ======================
 // Health Check
