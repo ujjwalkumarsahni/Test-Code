@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
 
 // Load env variables
@@ -31,20 +32,26 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-import authRoutes from "./routes/authRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import employeeRoutes from "./routes/employeeRoutes.js";
-import studentRoutes from "./routes/studentRoutes.js";
-import schoolRoutes from "./routes/schoolRoutes.js";
-import examRoutes from "./routes/examRoutes.js";
+app.use(cookieParser());
+// import authRoutes from "./routes/authRoutes.js";
+// import adminRoutes from "./routes/adminRoutes.js";
+// import employeeRoutes from "./routes/employeeRoutes.js";
+// import studentRoutes from "./routes/studentRoutes.js";
+// import schoolRoutes from "./routes/schoolRoutes.js";
+// import examRoutes from "./routes/examRoutes.js";
 
 
-app.use("/api/auth",authRoutes);
-app.use("/api/admin",adminRoutes);
-app.use("/api/employee",employeeRoutes);
-app.use("/api/student",studentRoutes);
-app.use("/api/schools",schoolRoutes);
-app.use("/api/exams",examRoutes);
+// app.use("/api/auth",authRoutes);
+// app.use("/api/admin",adminRoutes);
+// app.use("/api/employee",employeeRoutes);
+// app.use("/api/student",studentRoutes);
+// app.use("/api/schools",schoolRoutes);
+// app.use("/api/exams",examRoutes);
+
+import schoolRoutes from "./OrderManagement/routes/schoolRoutes.js";
+import authRoutes from "./OrderManagement/routes/authRoutes.js";
+app.use('/api/schools', schoolRoutes);
+app.use("/api/auth", authRoutes);
 
 // ======================
 // Health Check

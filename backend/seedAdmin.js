@@ -4,28 +4,37 @@ import User from "./models/User.js";
 
 dotenv.config();
 
-mongoose.connect(process.env.MONGODB_URI);
+await mongoose.connect(process.env.MONGODB_URI);
 
-const seedAdmin = async ()=>{
-  const exists = await User.findOne({role:"admin"});
+const seedAdmin = async () => {
+  try {
+    console.log("DB Connected");
 
-  if(exists){
-    console.log("Admin already exists");
+    const existingAdmin = await User.findOne({ email: "admin@test.com" });
+
+    if (existingAdmin) {
+      console.log("Admin already exists");
+      process.exit();
+    }
+
+    const admin = await User.create({
+      name: "Super Admin",
+      email: "admin@test.com",
+      passwordHash: "123456", // plain password (auto-hash hoga)
+      role: "admin",
+      isActive: true
+    });
+
+    console.log("✅ Admin created successfully");
+    console.log("Email:", admin.email);
+    console.log("Password: 123456");
+
     process.exit();
+
+  } catch (error) {
+    console.error("Seeder error:", error);
+    process.exit(1);
   }
-
-  const admin = await User.create({
-    name:"Super Admin",
-    email:"admin@test.com",
-    passwordHash:"123456",
-    role:"admin"
-  });
-
-  console.log("Admin created:");
-  console.log("Email: admin@test.com");
-  console.log("Password: 123456");
-
-  process.exit();
 };
 
 seedAdmin();
