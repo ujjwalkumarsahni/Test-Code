@@ -1,16 +1,16 @@
-import Sidebar from "./Sidebar";
-import Header from "./Header";
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Header from './Header';
 
-const Layout = ({children})=>{
-  return(
-    <div style={{display:"flex",height:"100vh"}}>
-      <Sidebar/>
-      <div style={{flex:1}}>
-        <Header/>
-        <div style={{padding:"20px"}}>
-          {children}
-        </div>
-      </div>
+const Layout = () => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      
+      {/* Main Content Area */}
+      <main className="p-4 sm:p-6 lg:p-8">
+        <Outlet />
+      </main>
     </div>
   );
 };

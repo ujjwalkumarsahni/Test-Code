@@ -1,16 +1,22 @@
-import {BrowserRouter,Routes,Route} from "react-router-dom";
-import Students from "./pages/Students";
-import Dashboard from "./pages/dashboard/Dashboard";
-import Login from "./pages/auth/Login";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Login from './pages/auth/Login';
+import  Layout  from './components/Layout';
+import Schools from './pages/School/Schools';
+import CreateOrderPage from './pages/OrderManagemet/Orders';
 
-export default function App(){
+function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
-        <Route path="/login" element={<Login/>}/>
-        <Route path="/" element={<Dashboard/>}/>
-        <Route path="/students" element={<Students/>}/>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Schools />} /> {/* Default to Schools */}
+          <Route path="schools" element={<Schools />} />
+          <Route path="orders" element={<CreateOrderPage />} />
+        </Route>
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
+
+export default App;

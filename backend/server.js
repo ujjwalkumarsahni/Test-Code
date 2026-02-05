@@ -50,8 +50,10 @@ app.use(cookieParser());
 
 import schoolRoutes from "./OrderManagement/routes/schoolRoutes.js";
 import authRoutes from "./OrderManagement/routes/authRoutes.js";
+import ordersRoutes from "./OrderManagement/routes/orderRoutes.js";
 app.use('/api/schools', schoolRoutes);
 app.use("/api/auth", authRoutes);
+app.use('/api/orders', ordersRoutes);
 
 // ======================
 // Health Check
