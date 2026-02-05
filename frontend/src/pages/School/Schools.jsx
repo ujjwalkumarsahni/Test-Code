@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Users } from 'lucide-react';
-import { toast } from 'react-hot-toast';
-import api from '../../api/api';
+import React, { useState, useEffect } from "react";
+import { Users } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { schoolAPI } from "../../api/api.js";
 
 const Schools = () => {
   const [schools, setSchools] = useState([]);
@@ -14,10 +14,10 @@ const Schools = () => {
   const fetchSchools = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/schools');
-      setSchools(response.data.data);
+      const response = await schoolAPI.getSchools({ status: "active" });
+      setSchools(response.data);
     } catch (error) {
-      toast.error('Failed to load schools');
+      toast.error("Failed to load schools");
     } finally {
       setLoading(false);
     }
@@ -25,11 +25,13 @@ const Schools = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
+      active: "bg-green-100 text-green-800",
+      inactive: "bg-gray-100 text-gray-800",
     };
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${styles[status] || 'bg-gray-100'}`}>
+      <span
+        className={`px-2 py-1 rounded text-xs font-medium ${styles[status] || "bg-gray-100"}`}
+      >
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
@@ -38,10 +40,10 @@ const Schools = () => {
   const getTrainerStatus = (school) => {
     const count = school.currentTrainers?.length || 0;
     const required = school.trainersRequired || 1;
-    
-    if (count === 0) return { text: 'No Trainers', color: 'text-red-600' };
-    if (count < required) return { text: 'Shortage', color: 'text-yellow-600' };
-    return { text: 'Adequate', color: 'text-green-600' };
+
+    if (count === 0) return { text: "No Trainers", color: "text-red-600" };
+    if (count < required) return { text: "Shortage", color: "text-yellow-600" };
+    return { text: "Adequate", color: "text-green-600" };
   };
 
   return (
@@ -63,8 +65,12 @@ const Schools = () => {
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
               <Users className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No schools found</h3>
-            <p className="text-gray-600">There are no schools in the system yet</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No schools found
+            </h3>
+            <p className="text-gray-600">
+              There are no schools in the system yet
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -109,16 +115,23 @@ const Schools = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{school.city}</div>
+                        <div className="text-sm text-gray-900">
+                          {school.city}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{school.contactPersonName}</div>
-                        <div className="text-sm text-gray-500">{school.mobile}</div>
+                        <div className="text-sm text-gray-900">
+                          {school.contactPersonName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {school.mobile}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div>
                           <div className="text-sm text-gray-900">
-                            {school.currentTrainers?.length || 0} / {school.trainersRequired || 1}
+                            {school.currentTrainers?.length || 0} /{" "}
+                            {school.trainersRequired || 1}
                           </div>
                           <div className={`text-xs ${trainerStatus.color}`}>
                             {trainerStatus.text}

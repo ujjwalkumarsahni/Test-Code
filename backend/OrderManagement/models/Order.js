@@ -1,148 +1,3 @@
-// import mongoose from 'mongoose';
-
-// const bookItemSchema = new mongoose.Schema({
-//   bookId: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'Book'
-//   },
-//   bookName: {
-//     type: String,
-//     required: true
-//   },
-//   quantity: {
-//     type: Number,
-//     required: true,
-//     min: 1
-//   },
-//   unitPrice: {
-//     type: Number,
-//     required: true,
-//     min: 0
-//   },
-//   totalPrice: {
-//     type: Number,
-//     min: 0,
-//     default: 0
-//   },
-//   program: {
-//     type: String,
-//     enum: ['ELP', 'LTE', 'CAC', 'CTF']
-//   },
-//   grade: {
-//     type: String
-//   }
-// });
-
-// const kitItemSchema = new mongoose.Schema({
-//   kitType: {
-//     type: String,
-//     enum: ['Wonder Kit', 'Nexus Kit', 'Individual'],
-//     required: true
-//   },
-//   kitName: {
-//     type: String,
-//     required: function() {
-//       return this.kitType === 'Individual';
-//     }
-//   },
-//   quantity: {
-//     type: Number,
-//     required: true,
-//     min: 1
-//   },
-//   unitPrice: {
-//     type: Number,
-//     required: true,
-//     min: 0
-//   },
-//   totalPrice: {
-//     type: Number,
-//     min: 0,
-//     default: 0
-//   }
-// });
-
-// const orderSchema = new mongoose.Schema({
-//   invoiceNumber: {
-//     type: String,
-//     required: true,
-//     unique: true
-//   },
-//   schoolId: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'School',
-//     required: true
-//   },
-//   schoolName: {
-//     type: String,
-//     required: true
-//   },
-//   books: [bookItemSchema],
-//   kits: [kitItemSchema],
-//   discount: {
-//     type: Number,
-//     default: 0,
-//     min: 0
-//   },
-//   subtotal: {
-//     type: Number,
-//     min: 0,
-//     default: 0
-//   },
-//   totalAfterDiscount: {
-//     type: Number,
-//     min: 0,
-//     default: 0
-//   },
-//   paymentStatus: {
-//     type: String,
-//     enum: ['pending', 'paid', 'unpaid'],
-//     default: 'pending'
-//   },
-//   dispatchStatus: {
-//     type: String,
-//     enum: ['pending', 'dispatched', 'delivered'],
-//     default: 'pending'
-//   },
-//   dispatchedAt: {
-//     type: Date
-//   },
-//   invoiceDetails: {
-//     from: {
-//       name: String,
-//       address: String,
-//       contact: String
-//     },
-//     to: {
-//       name: String,
-//       address: String,
-//       contact: String
-//     },
-//     notes: String
-//   },
-//   createdBy: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User'
-//   },
-//   updatedBy: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User'
-//   }
-// }, {
-//   timestamps: true
-// });
-
-// // REMOVE the pre-save middleware completely
-// // OR fix it like this:
-
-// // Option 1: Remove middleware completely and handle calculations in controller
-// // Option 2: Keep this simple middleware if needed
-
-// const Order = mongoose.model('Order', orderSchema);
-// export default Order;
-
-
-
 import mongoose from 'mongoose';
 
 const orderItemSchema = new mongoose.Schema({
@@ -280,31 +135,31 @@ const orderSchema = new mongoose.Schema({
   fromAddress: {
     name: {
       type: String,
-      default: 'TechCraft Education'
+      default: 'Aaklan It Solutions Pvt Ltd'
     },
     address: {
       type: String,
-      default: '123, Tech Street, Innovation City'
+      default: 'IT - 9(A, EPIP, IT Park Rd, near Hotel Marigold, Sitapura Industrial Area, Sitapura, Jaipur, Rajasthan 302022'
     },
     city: {
       type: String,
-      default: 'Tech City'
+      default: 'Jaipur'
     },
     state: {
       type: String,
-      default: 'Delhi'
+      default: 'Rajasthan'
     },
     pincode: {
       type: String,
-      default: '110001'
+      default: '302022'
     },
     mobile: {
       type: String,
-      default: '9876543210'
+      default: '9571677609'
     },
     email: {
       type: String,
-      default: 'info@techcraftedu.com'
+      default: 'info@aaklan.com'
     }
   },
   createdBy: {
