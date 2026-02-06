@@ -118,9 +118,52 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'paid', 'partial'],
     default: 'pending'
   },
+  // New payment fields
+  paidAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  remainingAmount: {
+    type: Number,
+    default: function() {
+      return this.totalAmount - this.paidAmount;
+    },
+    min: 0
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'online', 'cheque', 'bank_transfer', null],
+    default: null
+  },
+  paymentDate: {
+    type: Date,
+    default: function() {
+      return this.paymentStatus === 'paid' || this.paymentStatus === 'partial' ? new Date() : null;
+    }
+  },
+  paymentNotes: {
+    type: String,
+    trim: true
+  },
+  paymentHistory: [
+  {
+    amount: Number,
+    method: String,
+    notes: String,
+    date: {
+      type: Date,
+      default: Date.now
+    },
+    receivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }
+  }
+],
   dispatchStatus: {
     type: String,
-    enum: ['pending', 'processing', 'dispatched', 'delivered'],
+    enum: ['pending', 'dispatched', 'delivered'],
     default: 'pending'
   },
   toAddress: {
@@ -182,38 +225,65 @@ const orderSchema = new mongoose.Schema({
 });
 
 // Generate invoice number before save
-orderSchema.pre('save', async function(next) {
+orderSchema.pre('save', async function() {
   if (!this.invoiceNumber) {
     const school = await mongoose.model('School').findById(this.school);
-    const schoolPrefix = school.name.substring(0, 4).toUpperCase();
+    const schoolPrefix = school.name.replace(/\s/g,'').substring(0,4).toUpperCase();
     const year = this.academicYear.split('-')[0];
-    
-    // Get count of orders for this school in this academic year
-    const count = await mongoose.model('Order').countDocuments({
-      school: this.school,
-      academicYear: this.academicYear
-    });
-    
-    this.invoiceNumber = `${schoolPrefix}/${year}/${count + 1}`;
+
+    const lastOrder = await mongoose.model('Order')
+      .findOne({ school: this.school, academicYear: this.academicYear })
+      .sort({ createdAt: -1 });
+
+    let nextNumber = 1;
+
+    if (lastOrder?.invoiceNumber) {
+      const lastNum = parseInt(lastOrder.invoiceNumber.split('/').pop());
+      nextNumber = lastNum + 1;
+    }
+
+    this.invoiceNumber = `${schoolPrefix}/${year}/${nextNumber}`;
   }
-  
-  // Calculate totals
-  const orderItemsTotal = this.orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
-  const kitItemsTotal = this.kitItems.reduce((sum, item) => sum + item.totalPrice, 0);
+
+  const orderItemsTotal = this.orderItems.reduce((s,i)=>s+i.totalPrice,0);
+  const kitItemsTotal = this.kitItems.reduce((s,i)=>s+i.totalPrice,0);
+
   this.subtotal = orderItemsTotal + kitItemsTotal;
   this.totalAmount = this.subtotal - this.discount;
-  
+});
+
+
+
+orderSchema.pre('save', async function() {
+  if (this.isModified('paidAmount') || this.isModified('totalAmount')) {
+    this.remainingAmount = this.totalAmount - this.paidAmount;
+    
+    // Auto-update payment status based on amounts
+    if (this.paidAmount === 0) {
+      this.paymentStatus = 'pending';
+    } else if (this.paidAmount >= this.totalAmount) {
+      this.paymentStatus = 'paid';
+      this.paidAmount = this.totalAmount; // Ensure paid amount doesn't exceed total
+      this.remainingAmount = 0;
+    } else if (this.paidAmount > 0) {
+      this.paymentStatus = 'partial';
+    }
+    
+    // Set payment date if payment is made
+    if ((this.paymentStatus === 'paid' || this.paymentStatus === 'partial') && !this.paymentDate) {
+      this.paymentDate = new Date();
+    }
+  }
   // next();
 });
 
 // Virtual for isEditable
 orderSchema.virtual('isEditable').get(function() {
-  return this.dispatchStatus === 'pending' || this.dispatchStatus === 'processing';
+  return this.dispatchStatus === 'pending';
 });
 
 // Indexes
 orderSchema.index({ school: 1 });
-orderSchema.index({ invoiceNumber: 1 });
 orderSchema.index({ academicYear: 1 });
 orderSchema.index({ paymentStatus: 1 });
 orderSchema.index({ dispatchStatus: 1 });

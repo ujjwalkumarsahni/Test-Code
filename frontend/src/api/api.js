@@ -22,12 +22,33 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor - UPDATED
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || error.message || 'Something went wrong';
-    return Promise.reject(message);
+    // Handle 401 - Unauthorized
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+      return Promise.reject(new Error('Session expired. Please login again.'));
+    }
+    
+    // Extract error details
+    const serverMessage = error.response?.data?.message;
+    const axiosMessage = error.message;
+    const statusCode = error.response?.status;
+    
+    // Create a proper error object with all details
+    const errorObj = {
+      message: serverMessage || axiosMessage || 'Something went wrong',
+      status: statusCode,
+      data: error.response?.data,
+      isServerError: !!error.response,
+      isNetworkError: !error.response,
+    };
+    
+    return Promise.reject(errorObj);
   }
 );
 
@@ -96,20 +117,26 @@ export const orderAPI = {
   // Get order stats
   getOrderStats: (params) => api.get('/orders/dashboard/stats', { params }),
   
-  // Generate invoice
-  generateInvoice: (id) => api.get(`/orders/${id}/invoice`),
+  generateInvoicePDF: (id) => 
+    api.get(`/orders/${id}/invoice-pdf`, { 
+      responseType: 'blob' 
+    }),
   
-  // Download invoice PDF
-  downloadInvoice: (id) => {
-    return api.get(`/orders/${id}/invoice`, {
-      responseType: 'blob',
-    });
-  },
+  generateInvoice: (id) => 
+    api.get(`/orders/${id}/invoice`),
 };
 
+export const bookAPI = {
+  getCatalog: (params) => api.get('/books/catalog', { params }),
+  getStructure: () => api.get('/books/structure'),
+  createBook: (data) => api.post('/books/catalog', data),
+  updateBook: (id, data) => api.put(`/books/catalog/${id}`, data),
+  deleteBook: (id) => api.delete(`/books/catalog/${id}`)
+};
 
 // Export everything
 export default {
   schoolAPI,
-  orderAPI
+  orderAPI,
+  bookAPI
 };

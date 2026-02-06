@@ -8,7 +8,7 @@ import {
   updatePaymentStatus,
   dispatchOrder,
   getOrderStats,
-  generateInvoice
+  generateInvoice,
 } from '../controllers/orderController.js';
 
 import {
