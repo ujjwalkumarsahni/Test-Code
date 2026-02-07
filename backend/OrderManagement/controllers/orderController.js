@@ -2,6 +2,8 @@ import asyncHandler from "express-async-handler";
 import Order from "../models/Order.js";
 import School from "../models/School.js";
 import PDFDocument from "pdfkit";
+import path from "path";
+import fs from "fs";
 
 export const createOrder = asyncHandler(async (req, res) => {
   const {
@@ -11,6 +13,8 @@ export const createOrder = asyncHandler(async (req, res) => {
     kitItems,
     discountPercentage,
     discountAmount,
+    gstPercentage,
+    gstAmount,
     toAddress,
   } = req.body;
 
@@ -90,6 +94,11 @@ export const createOrder = asyncHandler(async (req, res) => {
     kitItems: kitItemsWithTotals,
     discountPercentage: discountPercentage || 0,
     discount: finalDiscountAmount,
+
+    // GST optional
+    ...(gstPercentage && { gstPercentage }),
+    ...(gstAmount && { gstAmount }),
+
     subtotal,
     totalAmount,
     toAddress: {
@@ -587,131 +596,443 @@ export const getOrderStats = asyncHandler(async (req, res) => {
   });
 });
 
+const PAGE_BOTTOM = 780;
+
+// ================= PAGE BREAK HELPER =================
+const checkPageBreak = (doc, currentY, needed = 20) => {
+  if (currentY + needed > PAGE_BOTTOM) {
+    doc.addPage();
+    drawTemplate(doc);
+    return 120;
+  }
+  return currentY;
+};
+
+// ================= TEMPLATE =================
+const drawTemplate = (doc) => {
+  const logoPath = path.join(
+    process.cwd(),
+    "OrderManagement/assets/aaklan-logo.png",
+  );
+
+  // Header
+  doc.image(logoPath, 10, 10, { width: 120 });
+
+  doc
+    .fontSize(12)
+    .fillColor("#000")
+    .text("Aaklan IT Solutions Pvt. Ltd.", 400, 15)
+    .fontSize(10)
+    .text("IT-9(A), EPIP, IT Park Road, Sitapura", 400, 28)
+    .text("Jaipur, Rajasthan - 302022", 400, 38);
+
+  // ===== EXACT MATCH HEADER BAR =====
+
+  // 1) Orange base line
+  doc.rect(0, 55, 595, 10).fill("#F4A300");
+
+  // 2) Blue block (right)
+  doc.rect(520, 55, 75, 10).fill("#1F2A44");
+
+  // 3) Slanted orange stripes
+  const stripeY = 55;
+  const stripeHeight = 10;
+  const stripeWidth = 10;
+
+  for (let i = 0; i < 4; i++) {
+    const startX = 470 + i * 12;
+
+    doc
+      .polygon(
+        [startX, stripeY],
+        [startX + stripeWidth, stripeY],
+        [startX + stripeWidth - 4, stripeY + stripeHeight],
+        [startX - 4, stripeY + stripeHeight],
+      )
+      .fill("#F4A300");
+  }
+
+  // ===== PREMIUM FOOTER =====
+
+  const h = doc.page.height;
+
+  // Orange top strip
+  doc.rect(0, h - 52, 595, 18).fill("#F4A300");
+
+  // Blue footer background
+  doc.rect(0, h - 40, 595, 40).fill("#1F2A44");
+
+  // White text styling
+  doc.fillColor("#fff");
+
+  // Row 1 (CIN & PAN)
+  doc
+    .fontSize(8)
+    .text("CIN: U72900RJ2021PTC072389", 20, h - 32)
+    .text("PAN: AAUCA6196N", 450, h - 32, { align: "right", width: 125 });
+
+  // Row 2 (contact info centered)
+  doc
+    .fontSize(9)
+    .text(
+      "+91 9571677609   |   www.aaklan.com   |   support@aaklan.com",
+      0,
+      h - 18,
+      {
+        width: 595,
+        align: "center",
+      },
+    );
+};
+
+// ================= TABLE HEADER =================
+const drawTableHeaders = (doc, y) => {
+  const startX = 20;
+  const tableWidth = 555;
+
+  doc.rect(startX, y, tableWidth, 22).fill("#0F172A");
+
+  doc.font("Noto-Bold").fillColor("#fff").fontSize(9);
+
+  // SAME grid as rows
+  doc.text("Sr. No.", startX + 5, y + 5, {
+    width: 40,
+    align: "center",
+  });
+
+  doc.text("Item Description", startX + 55, y + 5, {
+    width: 210,
+    align: "center",
+  });
+
+  doc.text("Quantity", startX + 275, y + 5, {
+    width: 60,
+    align: "center",
+  });
+
+  doc.text("Unit Price", startX + 355, y + 5, {
+    width: 70,
+    align: "center",
+  });
+
+  doc.text("Amount", startX + 440, y + 5, {
+    width: 80,
+    align: "center",
+  });
+
+  doc.font("Noto");
+};
+
+// ================= MAIN CONTENT =================
+const drawInvoiceContent = (doc, order) => {
+  // REGISTER FONTS
+  doc.registerFont(
+    "Noto",
+    path.join(
+      process.cwd(),
+      "OrderManagement/assets/fonts/NotoSans-Regular.ttf",
+    ),
+  );
+
+  doc.registerFont(
+    "Noto-Bold",
+    path.join(process.cwd(), "OrderManagement/assets/fonts/NotoSans-Bold.ttf"),
+  );
+
+  doc.font("Noto");
+  doc.fillColor("#000");
+  const startX = 20; // table left align
+  const tableWidth = 555;
+
+  let y = 80;
+
+  // --------- BILL FROM ----------
+  doc.fontSize(10).text("BILL FROM:", startX, y);
+  y += 15;
+
+  doc
+    .fontSize(9)
+    .text("Aaklan IT Solutions Pvt. Ltd.", startX, y)
+    .text("IT-9(A), EPIP, IT Park Road, Sitapura", startX, (y += 12))
+    .text("Jaipur, Rajasthan - 302022", startX, (y += 12))
+    .text("Mobile: +91 9571677609", startX, (y += 12))
+    .text("Email: support@aaklan.com", startX, (y += 12));
+
+  // --------- BILL TO ----------
+  let billToY = 80;
+
+  const billToX = 200;
+
+  doc.fontSize(10).text("BILL TO:", billToX, billToY);
+  billToY += 15;
+
+  doc
+    .fontSize(9)
+    .text(order.school.name, billToX, billToY)
+    .text(order.school.address, billToX, (billToY += 12))
+    .text(order.school.city, billToX, (billToY += 12))
+    .text(`Mobile: ${order.school.mobile}`, billToX, (billToY += 12))
+    .text(`Email: ${order.school.email}`, billToX, (billToY += 12));
+
+  // --------- INVOICE INFO ----------
+  let infoY = 80;
+
+  const invoiceX = 400;
+
+  doc
+    .fontSize(10)
+    .text(`Invoice No: ${order.invoiceNumber}`, invoiceX, infoY, {
+      width: 170,
+      align: "right",
+    })
+    .text(`Date: ${new Date().toLocaleDateString()}`, invoiceX, infoY + 15, {
+      width: 170,
+      align: "right",
+    });
+
+  // --------- TABLE ----------
+  // COLUMN POSITIONS
+  const colX = {
+    sr: startX,
+    desc: startX + 50,
+    qty: startX + 270,
+    price: startX + 350,
+    amount: startX + 450,
+  };
+
+  const rowHeight = 20;
+
+  y = Math.max(y, billToY) + 40;
+
+  drawTableHeaders(doc, y);
+  doc
+    .moveTo(startX, y)
+    .lineTo(startX + tableWidth, y)
+    .stroke();
+
+  y += 22;
+
+  let i = 1;
+
+  const drawRow = (desc, qty, price, total) => {
+    y = checkPageBreak(doc, y, rowHeight);
+
+    doc.fontSize(9).fillColor("#000");
+
+    // Alternate row color (optional but nice)
+    if (i % 2 === 0) {
+      doc.rect(startX, y, tableWidth, rowHeight).fill("#EEF2F7");
+      doc.fillColor("#000");
+    }
+
+    // TEXT
+    doc.text(i, colX.sr + 5, y + 5, { width: 40, align: "center" });
+    doc.text(desc, colX.desc + 5, y + 5, { width: 210 });
+    doc.text(qty, colX.qty + 5, y + 5, { width: 60, align: "center" });
+    doc.text(`₹ ${price}`, colX.price + 5, y + 5, {
+      width: 70,
+      align: "right",
+    });
+    doc.text(`₹ ${total}`, colX.amount + 5, y + 5, {
+      width: 80,
+      align: "right",
+    });
+
+    // ROW BORDER
+    doc.rect(startX, y, tableWidth, rowHeight).stroke();
+
+    // COLUMN LINES
+    doc
+      .moveTo(colX.desc, y)
+      .lineTo(colX.desc, y + rowHeight)
+      .stroke();
+    doc
+      .moveTo(colX.qty, y)
+      .lineTo(colX.qty, y + rowHeight)
+      .stroke();
+    doc
+      .moveTo(colX.price, y)
+      .lineTo(colX.price, y + rowHeight)
+      .stroke();
+    doc
+      .moveTo(colX.amount, y)
+      .lineTo(colX.amount, y + rowHeight)
+      .stroke();
+
+    y += rowHeight;
+    i++;
+  };
+
+  order.orderItems?.forEach((it) => {
+    const desc = it.bookName
+      ? `${it.bookType} - ${it.bookName} (${it.grade})`
+      : `${it.bookType} (${it.grade})`;
+
+    drawRow(
+      desc,
+      it.quantity,
+      it.unitPrice.toFixed(2),
+      it.totalPrice.toFixed(2),
+    );
+  });
+
+  order.kitItems?.forEach((k) => {
+    drawRow(
+      `${k.kitType} - ${k.kitName}`,
+      k.quantity,
+      k.unitPrice.toFixed(2),
+      k.totalPrice.toFixed(2),
+    );
+  });
+  const subtotal = order.subtotal || 0;
+  const discount = order.discount || 0;
+  // GST from DB (optional)
+  const gst = order.gstAmount || 0;
+  const grand = subtotal - discount + gst;
+
+  // --------- TOTALS TABLE ----------
+  const totalsX = startX + tableWidth - 250;
+  const totalsWidth = 250;
+  const rowH = 22;
+
+  // Row function
+  const drawTotalRow = (label, value, bold = false) => {
+    doc.rect(totalsX, y, totalsWidth, rowH).stroke();
+
+    doc
+      .fontSize(bold ? 11 : 10)
+      .fillColor("#000")
+      .text(label, totalsX + 10, y + 6)
+      .text(`₹ ${value.toFixed(2)}`, totalsX, y + 6, {
+        width: totalsWidth - 10,
+        align: "right",
+      });
+
+    y += rowH;
+  };
+
+ drawTotalRow("Subtotal", subtotal);
+
+// ===== Discount % calculation =====
+let discountPercent = 0;
+
+if (subtotal > 0 && discount > 0) {
+  discountPercent = Math.round((discount / subtotal) * 100);
+}
+
+// Show discount only if exists
+if (discount > 0) {
+  drawTotalRow(
+    `Discount (${discountPercent}%)`,
+    discount
+  );
+}
+
+// ===== GST optional =====
+if (gst > 0) {
+  drawTotalRow(
+    `GST (${order.gstPercentage || 18}%)`,
+    gst
+  );
+}
+
+// Grand total from DB (best practice)
+drawTotalRow("Grand Total", order.totalAmount, true);
+
+  y += 10;
+
+  // --------- BANK DETAILS (LEFT SIDE) ----------
+  const bankY = y - 10;
+
+  // Heading bold
+  doc
+    .font("Noto-Bold")
+    .fontSize(10)
+    .fillColor("#0F172A")
+    .text("Company Bank Details", startX, bankY);
+  doc.fontSize(9).fillColor("#000");
+
+  // Account Holder
+  doc
+    .font("Noto")
+    .text("Account Holder: ", startX, bankY + 15, { continued: true })
+    .font("Noto-Bold")
+    .text("Aaklan It Solutions Pvt. Ltd.");
+
+  // Account Number
+  doc
+    .font("Noto")
+    .text("Account Number: ", startX, bankY + 28, { continued: true })
+    .font("Noto-Bold")
+    .text("50200062871746");
+
+  // IFSC
+  doc
+    .font("Noto")
+    .text("IFSC: ", startX, bankY + 41, { continued: true })
+    .font("Noto-Bold")
+    .text("HDFC0005306");
+
+  // Branch
+  doc
+    .font("Noto")
+    .text("Branch: ", startX, bankY + 54, { continued: true })
+    .font("Noto-Bold")
+    .text("NIRMAN NAGAR");
+
+  // Account Type
+  doc
+    .font("Noto")
+    .text("Account Type: ", startX, bankY + 67, { continued: true })
+    .font("Noto-Bold")
+    .text("CURRENT");
+
+  // UPI
+  doc
+    .font("Noto")
+    .text("UPI: ", startX, bankY + 80, { continued: true })
+    .font("Noto-Bold")
+    .text("9660997790@hdfcbank");
+
+  // Reset font
+  doc.font("Noto");
+
+  // --------- SIGNATURE ----------
+  const footerTopY = doc.page.height - 40;
+  const signatureY = footerTopY - 80;
+
+  doc
+    .fontSize(10)
+    .text("For Aaklan IT Solutions Pvt. Ltd.", startX + 30, signatureY)
+    .moveTo(startX + 30, signatureY + 25)
+    .lineTo(startX + 180, signatureY + 25)
+    .stroke()
+    .fontSize(8)
+    .text("Authorized Signatory", startX + 70, signatureY + 30);
+
+  doc
+    .fontSize(10)
+    .text(`For ${order.school.name}`, startX + 350, signatureY)
+    .moveTo(startX + 350, signatureY + 25)
+    .lineTo(startX + 500, signatureY + 25)
+    .stroke()
+    .fontSize(8)
+    .text("Authorized Signatory", startX + 390, signatureY + 30);
+};
+
+// ================= CONTROLLER =================
 export const generateInvoice = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id)
-    .populate("school", "name city address contactPersonName mobile email")
-    .populate("createdBy", "name email")
-    .populate("paymentHistory.receivedBy", "name");
+  const order = await Order.findById(req.params.id).populate("school");
 
-  if (!order) throw new Error("Order not found");
-
-  const doc = new PDFDocument({ margin: 50 });
+  const doc = new PDFDocument({ margin: 0, size: "A4" });
 
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=invoice-${order.invoiceNumber}.pdf`,
-  );
+  res.setHeader("Content-Disposition", `attachment; filename=invoice.pdf`);
 
   doc.pipe(res);
 
-  /* ---------------- HEADER ---------------- */
-  doc.fontSize(20).text("INVOICE", { align: "center" }).moveDown();
-
-  doc.fontSize(10);
-  doc.text(`Invoice No: ${order.invoiceNumber}`);
-  doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`);
-  doc.text(`Academic Year: ${order.academicYear}`);
-
-  doc.moveDown();
-
-  /* ---------------- FROM / TO ---------------- */
-  doc.fontSize(12).text("FROM:", { underline: true });
-  doc.fontSize(10);
-  doc.text(order.fromAddress.name);
-  doc.text(order.fromAddress.address);
-  doc.text(`${order.fromAddress.city}, ${order.fromAddress.state}`);
-  doc.text(`Mobile: ${order.fromAddress.mobile}`);
-  doc.text(`Email: ${order.fromAddress.email}`);
-
-  doc.moveDown();
-
-  doc.fontSize(12).text("TO:", { underline: true });
-  doc.fontSize(10);
-  doc.text(order.toAddress.name);
-  doc.text(order.toAddress.address);
-  doc.text(order.toAddress.city);
-  doc.text(`Mobile: ${order.toAddress.mobile}`);
-  doc.text(`Email: ${order.toAddress.email}`);
-
-  doc.moveDown();
-
-  /* ---------------- ITEMS TABLE ---------------- */
-  doc.fontSize(12).text("Books:", { underline: true });
-
-  order.orderItems.forEach((item) => {
-    doc
-      .fontSize(10)
-      .text(
-        `${item.bookType} - ${item.grade || ""} | Qty: ${
-          item.quantity
-        } | ₹${item.unitPrice} = ₹${item.totalPrice}`,
-      );
-  });
-
-  doc.moveDown();
-
-  if (order.kitItems.length) {
-    doc.fontSize(12).text("Kits:", { underline: true });
-
-    order.kitItems.forEach((item) => {
-      doc
-        .fontSize(10)
-        .text(
-          `${item.kitType} | Qty: ${item.quantity} | ₹${item.unitPrice} = ₹${item.totalPrice}`,
-        );
-    });
-  }
-
-  doc.moveDown();
-
-  /* ---------------- TOTALS ---------------- */
-  doc.fontSize(12).text("Summary", { underline: true });
-  doc.fontSize(10);
-
-  doc.text(`Subtotal: ₹${order.subtotal}`);
-  doc.text(`Discount: ₹${order.discount}`);
-  doc.text(`Total: ₹${order.totalAmount}`);
-
-  doc.moveDown();
-
-  /* ---------------- PAYMENT ---------------- */
-  doc.fontSize(12).text("Payment Details", { underline: true });
-  doc.fontSize(10);
-
-  doc.text(`Paid: ₹${order.paidAmount}`);
-  doc.text(`Remaining: ₹${order.remainingAmount}`);
-  doc.text(`Status: ${order.paymentStatus}`);
-
-  doc.moveDown();
-
-  /* ---------------- PAYMENT HISTORY ---------------- */
-  if (order.paymentHistory.length) {
-    doc.fontSize(12).text("Payment History", { underline: true });
-
-    order.paymentHistory.forEach((p) => {
-      doc
-        .fontSize(10)
-        .text(
-          `${new Date(p.date).toLocaleDateString()} | ₹${p.amount} | ${
-            p.method
-          }`,
-        );
-    });
-  }
-
-  doc.moveDown();
-
-  /* ---------------- DISPATCH ---------------- */
-  doc.fontSize(12).text("Dispatch", { underline: true });
-  doc.fontSize(10);
-
-  doc.text(`Status: ${order.dispatchStatus}`);
-  if (order.dispatchedAt) {
-    doc.text(
-      `Dispatched On: ${new Date(order.dispatchedAt).toLocaleDateString()}`,
-    );
-  }
+  drawTemplate(doc);
+  drawInvoiceContent(doc, order);
 
   doc.end();
 });

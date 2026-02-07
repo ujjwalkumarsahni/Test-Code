@@ -1,6 +1,6 @@
 // frontend/src/pages/BookCatalogPage.jsx
 import React, { useState, useEffect } from 'react';
-import { bookAPI } from '../../api/api.js';
+import { orderAPI } from '../../api/api.js';
 import { formatCurrency } from '../../utils/formatters.js';
 
 const BookCatalogPage = () => {
@@ -48,7 +48,7 @@ const BookCatalogPage = () => {
   const fetchBooks = async () => {
     try {
       setLoading(true);
-      const response = await bookAPI.getCatalog();
+      const response = await orderAPI.getCatalog();
       setBooks(response.flatData || []);
     } catch (error) {
       console.error('Error fetching books:', error);
@@ -61,7 +61,7 @@ const BookCatalogPage = () => {
   const handleAddBook = async (e) => {
     e.preventDefault();
     try {
-      await bookAPI.createBook(formData);
+      await orderAPI.createBook(formData);
       alert('Book added successfully');
       setShowAddModal(false);
       resetForm();
@@ -74,7 +74,7 @@ const BookCatalogPage = () => {
   const handleEditBook = async (e) => {
     e.preventDefault();
     try {
-      await bookAPI.updateBook(selectedBook._id, formData);
+      await orderAPI.updateBook(selectedBook._id, formData);
       alert('Book updated successfully');
       setShowEditModal(false);
       resetForm();
@@ -87,7 +87,7 @@ const BookCatalogPage = () => {
   const handleDeleteBook = async (bookId) => {
     if (window.confirm('Are you sure you want to delete this book from catalog?')) {
       try {
-        await bookAPI.deleteBook(bookId);
+        await orderAPI.deleteBook(bookId);
         alert('Book deleted successfully');
         fetchBooks();
       } catch (error) {

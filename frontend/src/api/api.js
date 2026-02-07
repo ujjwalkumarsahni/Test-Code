@@ -126,17 +126,9 @@ export const orderAPI = {
     api.get(`/orders/${id}/invoice`),
 };
 
-export const bookAPI = {
-  getCatalog: (params) => api.get('/books/catalog', { params }),
-  getStructure: () => api.get('/books/structure'),
-  createBook: (data) => api.post('/books/catalog', data),
-  updateBook: (id, data) => api.put(`/books/catalog/${id}`, data),
-  deleteBook: (id) => api.delete(`/books/catalog/${id}`)
-};
 
 // Export everything
 export default {
   schoolAPI,
   orderAPI,
-  bookAPI
 };
