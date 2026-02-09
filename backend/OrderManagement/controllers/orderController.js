@@ -453,14 +453,34 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
 // @route   PATCH /api/orders/:id/dispatch
 // @access  Private/Admin/HR
 export const dispatchOrder = asyncHandler(async (req, res) => {
-  const { dispatchStatus, notes, fromAddress } = req.body;
+  const { dispatchStatus, notes, fromAddress, receiverName } = req.body;
 
-  // Only allow 3 statuses: pending, dispatched, delivered
+  if (
+    (dispatchStatus === "dispatched" || dispatchStatus === "delivered") &&
+    !receiverName
+  ) {
+    res.status(400);
+    throw new Error("Receiver name is required");
+  }
+
   if (!["pending", "dispatched", "delivered"].includes(dispatchStatus)) {
     res.status(400);
-    throw new Error(
-      "Invalid dispatch status. Allowed: pending, dispatched, delivered",
-    );
+    throw new Error("Invalid dispatch status");
+  }
+
+  const existingOrder = await Order.findById(req.params.id);
+
+  if (!existingOrder) {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+
+  if (
+    dispatchStatus === "delivered" &&
+    existingOrder.dispatchStatus !== "dispatched"
+  ) {
+    res.status(400);
+    throw new Error("Order must be dispatched first");
   }
 
   const updateData = {
@@ -472,6 +492,12 @@ export const dispatchOrder = asyncHandler(async (req, res) => {
   if (dispatchStatus === "dispatched") {
     updateData.dispatchedAt = new Date();
     updateData.dispatchedBy = req.user._id;
+    updateData["dispatchDetails.dispatchedTo"] = receiverName;
+  }
+
+  if (dispatchStatus === "delivered") {
+    updateData.deliveredAt = new Date();
+    updateData["dispatchDetails.deliveredTo"] = receiverName;
   }
 
   if (fromAddress) {
@@ -485,11 +511,6 @@ export const dispatchOrder = asyncHandler(async (req, res) => {
     .populate("school", "name city address contactPersonName mobile email")
     .populate("dispatchedBy", "name email")
     .populate("updatedBy", "name email");
-
-  if (!order) {
-    res.status(404);
-    throw new Error("Order not found");
-  }
 
   res.json({
     success: true,
@@ -614,17 +635,25 @@ const drawTemplate = (doc) => {
     process.cwd(),
     "OrderManagement/assets/aaklan-logo.png",
   );
-
+ doc.font("Noto");
+  doc.fillColor("#000");
   // Header
   doc.image(logoPath, 10, 10, { width: 120 });
 
-  doc
-    .fontSize(12)
-    .fillColor("#000")
-    .text("Aaklan IT Solutions Pvt. Ltd.", 400, 15)
-    .fontSize(10)
-    .text("IT-9(A), EPIP, IT Park Road, Sitapura", 400, 28)
-    .text("Jaipur, Rajasthan - 302022", 400, 38);
+  // Company Name Bold
+doc
+  .font("Noto-Bold")
+  .fontSize(12)
+  .fillColor("#000")
+  .text("Aaklan IT Solutions Pvt. Ltd.", 400, 15);
+
+// Address Normal
+doc
+  .font("Noto")
+  .fontSize(10)
+  .text("IT-9(A), EPIP, IT Park Road, Sitapura", 400, 28)
+  .text("Jaipur, Rajasthan - 302022", 400, 38);
+
 
   // ===== EXACT MATCH HEADER BAR =====
 
@@ -683,6 +712,8 @@ const drawTemplate = (doc) => {
         align: "center",
       },
     );
+
+  
 };
 
 // ================= TABLE HEADER =================
@@ -725,19 +756,7 @@ const drawTableHeaders = (doc, y) => {
 
 // ================= MAIN CONTENT =================
 const drawInvoiceContent = (doc, order) => {
-  // REGISTER FONTS
-  doc.registerFont(
-    "Noto",
-    path.join(
-      process.cwd(),
-      "OrderManagement/assets/fonts/NotoSans-Regular.ttf",
-    ),
-  );
-
-  doc.registerFont(
-    "Noto-Bold",
-    path.join(process.cwd(), "OrderManagement/assets/fonts/NotoSans-Bold.ttf"),
-  );
+  
 
   doc.font("Noto");
   doc.fillColor("#000");
@@ -747,7 +766,9 @@ const drawInvoiceContent = (doc, order) => {
   let y = 80;
 
   // --------- BILL FROM ----------
-  doc.fontSize(10).text("BILL FROM:", startX, y);
+  doc.font("Noto-Bold").fontSize(10).text("BILL FROM:", startX, y);
+  doc.font("Noto"); // reset
+
   y += 15;
 
   doc
@@ -763,7 +784,9 @@ const drawInvoiceContent = (doc, order) => {
 
   const billToX = 200;
 
-  doc.fontSize(10).text("BILL TO:", billToX, billToY);
+  doc.font("Noto-Bold").fontSize(10).text("BILL TO:", billToX, billToY);
+  doc.font("Noto");
+
   billToY += 15;
 
   doc
@@ -780,11 +803,15 @@ const drawInvoiceContent = (doc, order) => {
   const invoiceX = 400;
 
   doc
+    .font("Noto-Bold")
     .fontSize(10)
     .text(`Invoice No: ${order.invoiceNumber}`, invoiceX, infoY, {
       width: 170,
       align: "right",
-    })
+    });
+
+  doc
+    .font("Noto")
     .text(`Date: ${new Date().toLocaleDateString()}`, invoiceX, infoY + 15, {
       width: 170,
       align: "right",
@@ -895,14 +922,19 @@ const drawInvoiceContent = (doc, order) => {
   const totalsWidth = 250;
   const rowH = 22;
 
-  // Row function
   const drawTotalRow = (label, value, bold = false) => {
     doc.rect(totalsX, y, totalsWidth, rowH).stroke();
 
+    // Label
     doc
+      .font(bold ? "Noto-Bold" : "Noto")
       .fontSize(bold ? 11 : 10)
       .fillColor("#000")
-      .text(label, totalsX + 10, y + 6)
+      .text(label, totalsX + 10, y + 6);
+
+    // Value (separate font set)
+    doc
+      .font(bold ? "Noto-Bold" : "Noto")
       .text(`₹ ${value.toFixed(2)}`, totalsX, y + 6, {
         width: totalsWidth - 10,
         align: "right",
@@ -911,38 +943,39 @@ const drawInvoiceContent = (doc, order) => {
     y += rowH;
   };
 
- drawTotalRow("Subtotal", subtotal);
+  drawTotalRow("Subtotal", subtotal);
 
-// ===== Discount % calculation =====
-let discountPercent = 0;
+  // ===== Discount % calculation =====
+  let discountPercent = 0;
 
-if (subtotal > 0 && discount > 0) {
-  discountPercent = Math.round((discount / subtotal) * 100);
-}
+  if (subtotal > 0 && discount > 0) {
+    discountPercent = Math.round((discount / subtotal) * 100);
+  }
 
-// Show discount only if exists
-if (discount > 0) {
-  drawTotalRow(
-    `Discount (${discountPercent}%)`,
-    discount
-  );
-}
+  // Show discount only if exists
+  if (discount > 0) {
+    drawTotalRow(`Discount (${discountPercent}%)`, discount);
+  }
 
-// ===== GST optional =====
-if (gst > 0) {
-  drawTotalRow(
-    `GST (${order.gstPercentage || 18}%)`,
-    gst
-  );
-}
+  // ===== GST optional =====
+  if (gst > 0) {
+    drawTotalRow(`GST (${order.gstPercentage || 18}%)`, gst);
+  }
 
-// Grand total from DB (best practice)
-drawTotalRow("Grand Total", order.totalAmount, true);
+  // Grand total from DB (best practice)
+  drawTotalRow("Grand Total", order.totalAmount, true);
 
   y += 10;
 
+  // Check space before bank details
+  if (y + 160 > PAGE_BOTTOM) {
+    doc.addPage();
+    drawTemplate(doc);
+    y = 120;
+  }
+
   // --------- BANK DETAILS (LEFT SIDE) ----------
-  const bankY = y - 10;
+  const bankY = y;
 
   // Heading bold
   doc
@@ -950,7 +983,7 @@ drawTotalRow("Grand Total", order.totalAmount, true);
     .fontSize(10)
     .fillColor("#0F172A")
     .text("Company Bank Details", startX, bankY);
-  doc.fontSize(9).fillColor("#000");
+  doc.font("Noto").fontSize(9).fillColor("#000");
 
   // Account Holder
   doc
@@ -998,10 +1031,15 @@ drawTotalRow("Grand Total", order.totalAmount, true);
   doc.font("Noto");
 
   // --------- SIGNATURE ----------
-  const footerTopY = doc.page.height - 40;
-  const signatureY = footerTopY - 80;
+  let signatureY = bankY + 120;
+  if (signatureY > doc.page.height - 140) {
+    doc.addPage();
+    drawTemplate(doc);
+    signatureY = 120;
+  }
 
   doc
+    .font("Noto-Bold")
     .fontSize(10)
     .text("For Aaklan IT Solutions Pvt. Ltd.", startX + 30, signatureY)
     .moveTo(startX + 30, signatureY + 25)
@@ -1011,6 +1049,7 @@ drawTotalRow("Grand Total", order.totalAmount, true);
     .text("Authorized Signatory", startX + 70, signatureY + 30);
 
   doc
+    .font("Noto-Bold")
     .fontSize(10)
     .text(`For ${order.school.name}`, startX + 350, signatureY)
     .moveTo(startX + 350, signatureY + 25)
@@ -1031,8 +1070,20 @@ export const generateInvoice = asyncHandler(async (req, res) => {
 
   doc.pipe(res);
 
-  drawTemplate(doc);
-  drawInvoiceContent(doc, order);
+// REGISTER FONTS FIRST
+doc.registerFont(
+  "Noto",
+  path.join(process.cwd(),"OrderManagement/assets/fonts/NotoSans-Regular.ttf")
+);
+
+doc.registerFont(
+  "Noto-Bold",
+  path.join(process.cwd(),"OrderManagement/assets/fonts/NotoSans-Bold.ttf")
+);
+
+drawTemplate(doc);
+drawInvoiceContent(doc, order);
+
 
   doc.end();
 });

@@ -14,7 +14,7 @@ const schoolSchema = new mongoose.Schema({
   address: {
     type: String,
     required: [true, 'Address is required'],
-    trim: true
+    trim: true  
   },
   contactPersonName: {
     type: String,

@@ -127,8 +127,4 @@ export const orderAPI = {
 };
 
 
-// Export everything
-export default {
-  schoolAPI,
-  orderAPI,
-};
+export default api;

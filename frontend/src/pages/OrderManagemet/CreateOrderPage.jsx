@@ -3,6 +3,7 @@ import { orderAPI, schoolAPI } from "../../api/api.js";
 import { formatCurrency } from "../../utils/formatters.js";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { BOOK_CATALOG, KIT_CATALOG } from "../data/catalogData.js";
 
 const CreateOrderPage = () => {
   const navigate = useNavigate();
@@ -50,67 +51,13 @@ const CreateOrderPage = () => {
     { value: "CTF", label: "Creative Tech for Future (CTF)" },
   ];
 
-  // Available grades based on book type
   const getGradesForBookType = (type) => {
-    switch (type) {
-      case "ELP":
-        return ["Pre-Nursery", "LKG", "UKG"];
-      case "LTE":
-        return ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"];
-      case "CAC":
-        return [
-          "Grade 1",
-          "Grade 2",
-          "Grade 3",
-          "Grade 4",
-          "Grade 5",
-          "Grade 6",
-          "Grade 7",
-          "Grade 8",
-        ];
-      case "CTF":
-        return ["Grade 6", "Grade 7", "Grade 8", "Grade 9-12"];
-      default:
-        return [];
-    }
+    return Object.keys(BOOK_CATALOG[type] || {});
   };
 
   // Available books for ELP grades
   const getELPBooks = (grade) => {
-    const books = {
-      "Pre-Nursery": [
-        "Math O Mania Part-1",
-        "Math O Mania Part-2",
-        "Alpha O Mania Part-1",
-        "Alpha O Mania Part-2",
-        "Pyare Axar Part-1",
-        "Pyare Axar Part-2",
-        "Pyare Axar Part-3",
-        "Rhyme Book",
-        "Steamheartia",
-      ],
-      LKG: [
-        "Axar Masti Part-1",
-        "Axar Masti Part-2",
-        "Letter Land Heroes",
-        "Number Nuts Part-1",
-        "Number Nuts Part-2",
-        "Rhyme Book",
-        "SoundTopia",
-        "Thinky Tots Lab",
-      ],
-      UKG: [
-        "Kahani Kadam Part-1",
-        "Kahani Kadam Part-2",
-        "Number Bots Part-1",
-        "Number Bots Part-2",
-        "PenPals Paradise Part-1",
-        "SoundSpark Part-1",
-        "Rhyme Bunny",
-        "Tiny Tinker Lab",
-      ],
-    };
-    return books[grade] || [];
+    return BOOK_CATALOG.ELP[grade]?.books || [];
   };
 
   // Fetch schools on component mount
@@ -222,17 +169,18 @@ const CreateOrderPage = () => {
       );
       toast.success(`${grade} Combo Pack quantity increased`);
     } else {
-      // Add new combo
-      const newItem = {
-        bookType: "ELP",
-        grade: grade,
-        quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
-        isComboPack: true,
-        isIndividualBook: false,
-        bookName: `${grade} Combo Pack`,
-      };
+      const comboPrice = BOOK_CATALOG.ELP[grade].comboPrice;
+
+const newItem = {
+  bookType: "ELP",
+  grade: grade,
+  quantity: 1,
+  unitPrice: comboPrice,
+  totalPrice: comboPrice,
+  isComboPack: true,
+  isIndividualBook: false,
+  bookName: `${grade} Combo Pack`,
+};
 
       setFormData((prev) => ({
         ...prev,
@@ -270,17 +218,23 @@ const CreateOrderPage = () => {
       );
       toast.success(`${selectedIndividualBook} quantity increased`);
     } else {
-      // Add new individual book
-      const newItem = {
-        bookType: selectedBookType,
-        grade: selectedGrade,
-        bookName: selectedIndividualBook,
-        quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
-        isComboPack: false,
-        isIndividualBook: true,
-      };
+      const bookData =
+  BOOK_CATALOG.ELP[selectedGrade].books.find(
+    (b) => b.name === selectedIndividualBook
+  );
+
+const price = bookData?.price || 0;
+
+const newItem = {
+  bookType: selectedBookType,
+  grade: selectedGrade,
+  bookName: selectedIndividualBook,
+  quantity: 1,
+  unitPrice: price,
+  totalPrice: price,
+  isComboPack: false,
+  isIndividualBook: true,
+};
 
       setFormData((prev) => ({
         ...prev,
@@ -313,16 +267,18 @@ const CreateOrderPage = () => {
       );
       toast.success(`${selectedBookType} ${selectedGrade} quantity increased`);
     } else {
-      // Add new standard book
-      const newItem = {
-        bookType: selectedBookType,
-        grade: selectedGrade,
-        quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
-        isComboPack: false,
-        isIndividualBook: false,
-      };
+      const price =
+  BOOK_CATALOG[selectedBookType][selectedGrade] || 0;
+
+const newItem = {
+  bookType: selectedBookType,
+  grade: selectedGrade,
+  quantity: 1,
+  unitPrice: price,
+  totalPrice: price,
+  isComboPack: false,
+  isIndividualBook: false,
+};
 
       setFormData((prev) => ({
         ...prev,
@@ -351,14 +307,15 @@ const CreateOrderPage = () => {
       );
       toast.success(`${kitIdentifier} quantity increased`);
     } else {
-      // Add new kit
-      const newItem = {
-        kitType: kitType,
-        kitName: kitIdentifier,
-        quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
-      };
+      const price = KIT_CATALOG[kitType] || 0;
+
+const newItem = {
+  kitType: kitType,
+  kitName: kitIdentifier,
+  quantity: 1,
+  unitPrice: price,
+  totalPrice: price,
+};
 
       setFormData((prev) => ({
         ...prev,
@@ -616,54 +573,52 @@ const CreateOrderPage = () => {
   };
 
   // Add all individual books for current grade
-  const addAllIndividualBooks = () => {
-    const books = getELPBooks(selectedGrade);
-    let addedCount = 0;
+ const addAllIndividualBooks = () => {
+  const books = getELPBooks(selectedGrade);
+  let addedCount = 0;
 
-    books.forEach((book) => {
-      const existingIndex = formData.orderItems.findIndex(
-        (item) =>
-          item.isIndividualBook &&
-          item.bookType === "ELP" &&
-          item.grade === selectedGrade &&
-          item.bookName === book,
+  books.forEach((book) => {
+    const existingIndex = formData.orderItems.findIndex(
+      (item) =>
+        item.isIndividualBook &&
+        item.bookType === "ELP" &&
+        item.grade === selectedGrade &&
+        item.bookName === book.name
+    );
+
+    if (existingIndex >= 0) {
+      updateItem(
+        existingIndex,
+        "quantity",
+        formData.orderItems[existingIndex].quantity + 1,
+        "order"
       );
+    } else {
+      const newItem = {
+        bookType: "ELP",
+        grade: selectedGrade,
+        bookName: book.name,
+        quantity: 1,
+        unitPrice: book.price,
+        totalPrice: book.price,
+        isComboPack: false,
+        isIndividualBook: true,
+      };
 
-      if (existingIndex >= 0) {
-        updateItem(
-          existingIndex,
-          "quantity",
-          formData.orderItems[existingIndex].quantity + 1,
-          "order",
-        );
-        addedCount++;
-      } else {
-        const newItem = {
-          bookType: "ELP",
-          grade: selectedGrade,
-          bookName: book,
-          quantity: 1,
-          unitPrice: 0,
-          totalPrice: 0,
-          isComboPack: false,
-          isIndividualBook: true,
-        };
-        setFormData((prev) => ({
-          ...prev,
-          orderItems: [...prev.orderItems, newItem],
-        }));
-        addedCount++;
-      }
-    });
-
-    setSelectedIndividualBook("");
-
-    if (addedCount > 0) {
-      toast.success(
-        `Added ${addedCount} individual books for ${selectedGrade}`,
-      );
+      setFormData((prev) => ({
+        ...prev,
+        orderItems: [...prev.orderItems, newItem],
+      }));
     }
-  };
+
+    addedCount++;
+  });
+
+  setSelectedIndividualBook("");
+
+  toast.success(`Added ${addedCount} books for ${selectedGrade}`);
+};
+
 
   return (
     <div className="min-h-screen">
@@ -904,9 +859,6 @@ const CreateOrderPage = () => {
                           <div className="font-bold text-base">
                             {grade} Combo Pack
                           </div>
-                          <div className="text-sm mt-2 opacity-75">
-                            Set price manually
-                          </div>
                           {elpCombos[grade] && (
                             <div className="text-xs text-green-600 mt-2 flex items-center gap-1">
                               <svg
@@ -964,8 +916,8 @@ const CreateOrderPage = () => {
                             >
                               <option value="">Select a book</option>
                               {individualBooks.map((book) => (
-                                <option key={book} value={book}>
-                                  {book}
+                                <option key={book.name} value={book.name}>
+                                  {book.name} (₹{book.price})
                                 </option>
                               ))}
                             </select>
@@ -1088,7 +1040,7 @@ const CreateOrderPage = () => {
                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    {selectedBookType} {selectedGrade} - Set price manually
+                    {selectedBookType} {selectedGrade} 
                   </div>
                 </div>
               )}
@@ -1277,9 +1229,7 @@ const CreateOrderPage = () => {
                 <div className="font-bold text-lg text-purple-800 mb-2">
                   Wonder Kit
                 </div>
-                <div className="text-sm text-purple-600">
-                  Set price manually
-                </div>
+                
               </button>
 
               <button
@@ -1290,9 +1240,7 @@ const CreateOrderPage = () => {
                 <div className="font-bold text-lg text-indigo-800 mb-2">
                   Nexus Kit
                 </div>
-                <div className="text-sm text-indigo-600">
-                  Set price manually
-                </div>
+                
               </button>
 
               <button

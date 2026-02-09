@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Counter from "./counterModel.js";
 
 const orderItemSchema = new mongoose.Schema({
   bookType: {
@@ -125,15 +126,14 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
     gstPercentage: {
-  type: Number,
-  min: 0
-},
+      type: Number,
+      min: 0,
+    },
 
-gstAmount: {
-  type: Number,
-  min: 0
-},
-
+    gstAmount: {
+      type: Number,
+      min: 0,
+    },
 
     totalAmount: {
       type: Number,
@@ -195,6 +195,14 @@ gstAmount: {
       enum: ["pending", "dispatched", "delivered"],
       default: "pending",
     },
+    dispatchDetails: {
+      dispatchedTo: {
+        type: String,
+      },
+      deliveredTo: {
+        type: String,
+      },
+    },
     toAddress: {
       name: String,
       address: String,
@@ -245,6 +253,7 @@ gstAmount: {
       ref: "User",
     },
     dispatchedAt: Date,
+    deliveredAt: Date,
     dispatchedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -256,9 +265,7 @@ gstAmount: {
   },
 );
 
-// Generate invoice number + totals before save
 orderSchema.pre("save", async function () {
-
   // ========= INVOICE NUMBER =========
   if (!this.invoiceNumber) {
     const school = await mongoose.model("School").findById(this.school);
@@ -270,41 +277,33 @@ orderSchema.pre("save", async function () {
 
     const year = this.academicYear.split("-")[0];
 
-    const lastOrder = await mongoose
-      .model("Order")
-      .findOne({ school: this.school, academicYear: this.academicYear })
-      .sort({ createdAt: -1 });
+    // SAFE ATOMIC COUNTER
+    const counter = await Counter.findOneAndUpdate(
+      { name: `invoice_${year}` },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true },
+    );
 
-    let nextNumber = 1;
-
-    if (lastOrder?.invoiceNumber) {
-      const lastNum = parseInt(lastOrder.invoiceNumber.split("/").pop());
-      nextNumber = lastNum + 1;
-    }
-
-    this.invoiceNumber = `${schoolPrefix}/${year}/${nextNumber}`;
+    this.invoiceNumber = `${schoolPrefix}/${year}/${counter.seq}`;
   }
 
   // ========= CALCULATIONS =========
 
   const orderItemsTotal = this.orderItems.reduce(
-    (s, i) => s + i.totalPrice,
-    0
+    (s, i) => s + (i.totalPrice || 0),
+    0,
   );
 
   const kitItemsTotal = this.kitItems.reduce(
-    (s, i) => s + i.totalPrice,
-    0
+    (s, i) => s + (i.totalPrice || 0),
+    0,
   );
 
-  // Subtotal
   this.subtotal = orderItemsTotal + kitItemsTotal;
 
-  // After discount
   const afterDiscount = this.subtotal - (this.discount || 0);
 
-  // ========= GST (OPTIONAL) =========
-
+  // GST
   if (this.gstPercentage && this.gstPercentage > 0) {
     this.gstAmount = (this.gstPercentage / 100) * afterDiscount;
   } else {
@@ -312,11 +311,8 @@ orderSchema.pre("save", async function () {
     this.gstAmount = undefined;
   }
 
-  // ========= FINAL TOTAL =========
   this.totalAmount = afterDiscount + (this.gstAmount || 0);
-
 });
-
 
 orderSchema.pre("save", async function () {
   if (this.isModified("paidAmount") || this.isModified("totalAmount")) {

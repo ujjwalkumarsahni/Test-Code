@@ -24,6 +24,8 @@ const OrderDetailPage = () => {
   const [dispatchStatus, setDispatchStatus] = useState("");
   const [dispatchNotes, setDispatchNotes] = useState("");
 
+  const [receiverName, setReceiverName] = useState("");
+
   // Status badge styling with new colors
   const getStatusBadge = (type, status) => {
     const styles = {
@@ -146,12 +148,23 @@ const OrderDetailPage = () => {
   };
   const handleDispatchOrder = async () => {
     try {
+      if (
+        (dispatchStatus === "dispatched" || dispatchStatus === "delivered") &&
+        !receiverName
+      ) {
+        toast.error("Please enter receiver name");
+        return;
+      }
+
       setUpdating(true);
       await orderAPI.dispatchOrder(id, {
         dispatchStatus,
         notes: dispatchNotes,
+        receiverName,
       });
+
       toast.success("Order status updated successfully!");
+      setReceiverName("");
       setShowDispatchModal(false);
       fetchOrder();
     } catch (error) {
@@ -787,6 +800,24 @@ const OrderDetailPage = () => {
                     </span>
                   </div>
                 )}
+                {/* GST */}
+                {order.gstAmount > 0 && (
+                  <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                    <div>
+                      <span className="text-gray-600">GST:</span>
+                      {order.gstPercentage && (
+                        <span className="ml-2 text-sm text-gray-500">
+                          ({order.gstPercentage}%)
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="font-semibold text-blue-600">
+                      {formatCurrency(order.gstAmount)}
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center py-3 border-b border-gray-200">
                   <span className="text-gray-700 font-bold">Total Amount:</span>
                   <span className="font-bold text-2xl text-[#0B234A]">
@@ -877,14 +908,78 @@ const OrderDetailPage = () => {
               </div>
 
               {/* Order Status */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
                   Order Status
                 </h2>
+
+                <div className="space-y-3">
+                  {/* Payment */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Payment</span>
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusBadge("payment", order.paymentStatus)}`}
+                    >
+                      {order.paymentStatus}
+                    </span>
+                  </div>
+
+                  {/* Dispatch */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Dispatch</span>
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusBadge("dispatch", order.dispatchStatus)}`}
+                    >
+                      {order.dispatchStatus}
+                    </span>
+                  </div>
+
+                  {/* Receiver Info */}
+                  {(order.dispatchDetails?.dispatchedTo ||
+                    order.dispatchDetails?.deliveredTo) && (
+                    <div className="bg-gray-50 p-3 rounded-lg border text-sm">
+                      {order.dispatchDetails?.dispatchedTo && (
+                        <p>
+                          Dispatched To:
+                          <span className="font-semibold ml-1">
+                            {order.dispatchDetails.dispatchedTo}
+                          </span>
+                        </p>
+                      )}
+
+                      {order.dispatchDetails?.deliveredTo && (
+                        <p>
+                          Delivered To:
+                          <span className="font-semibold ml-1">
+                            {order.dispatchDetails.deliveredTo}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Lock Status */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">
+                      Edit Access
+                    </span>
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold ${order.isEditable ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"}`}
+                    >
+                      {order.isEditable ? "Editable" : "Locked"}
+                    </span>
+                  </div>
+                </div>
               </div>
+
               <div className="space-y-6 flex gap-6">
                 <div>
-                  <p className="text-sm text-gray-500 mb-2 font-bold">Payment Status</p>
+                  <p className="text-sm text-gray-500 mb-2 font-bold">
+                    Payment Status
+                  </p>
                   <div className="flex items-center">
                     <span
                       className={`inline-flex items-center px-4 py-1 rounded-full text-sm font-semibold border ${getStatusBadge("payment", order.paymentStatus)}`}
@@ -893,25 +988,26 @@ const OrderDetailPage = () => {
                         ? "Pending Payment"
                         : order.paymentStatus}
 
-                        {order.paymentStatus === "paid" && (
-                      <svg
-                        className="w-5 h-5 text-green-500 ml-1"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
+                      {order.paymentStatus === "paid" && (
+                        <svg
+                          className="w-5 h-5 text-green-500 ml-1"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
                     </span>
-                    
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-2 font-bold">Dispatch Status</p>
+                  <p className="text-sm text-gray-500 mb-2 font-bold">
+                    Dispatch Status
+                  </p>
                   <span
                     className={`inline-flex items-center px-4 py-1 rounded-full text-sm font-semibold border ${getStatusBadge("dispatch", order.dispatchStatus)}`}
                   >
@@ -919,7 +1015,9 @@ const OrderDetailPage = () => {
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-2 font-bold">Order Status</p>
+                  <p className="text-sm text-gray-500 mb-2 font-bold">
+                    Order Status
+                  </p>
                   <span
                     className={`inline-flex items-center px-4 py-1 rounded-full text-sm font-semibold ${
                       order.isEditable
@@ -1737,6 +1835,27 @@ const OrderDetailPage = () => {
                     ))}
                   </div>
                 </div>
+
+                {(dispatchStatus === "dispatched" ||
+                  dispatchStatus === "delivered") && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Receiver Name *
+                    </label>
+
+                    <input
+                      type="text"
+                      value={receiverName}
+                      onChange={(e) => setReceiverName(e.target.value)}
+                      placeholder={
+                        dispatchStatus === "dispatched"
+                          ? "Who received the dispatch?"
+                          : "Who received the delivery?"
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                )}
 
                 {/* Notes */}
                 <div>
