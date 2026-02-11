@@ -51,9 +51,13 @@ app.use(cookieParser());
 import schoolRoutes from "./OrderManagement/routes/schoolRoutes.js";
 import authRoutes from "./OrderManagement/routes/authRoutes.js";
 import ordersRoutes from "./OrderManagement/routes/orderRoutes.js";
+import employeeRoutes from "./OrderManagement/routes/employeeRoutes.js";
+import employeePostingRoutes from "./OrderManagement/routes/employeePostingRoutes.js";
 app.use('/api/schools', schoolRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use("/api/employee",employeeRoutes);
+app.use('/api/employee-postings', employeePostingRoutes);
 
 // ======================
 // Health Check

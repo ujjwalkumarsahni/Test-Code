@@ -654,7 +654,6 @@ doc
   .text("IT-9(A), EPIP, IT Park Road, Sitapura", 400, 28)
   .text("Jaipur, Rajasthan - 302022", 400, 38);
 
-
   // ===== EXACT MATCH HEADER BAR =====
 
   // 1) Orange base line
@@ -713,7 +712,6 @@ doc
       },
     );
 
-  
 };
 
 // ================= TABLE HEADER =================
@@ -756,8 +754,6 @@ const drawTableHeaders = (doc, y) => {
 
 // ================= MAIN CONTENT =================
 const drawInvoiceContent = (doc, order) => {
-  
-
   doc.font("Noto");
   doc.fillColor("#000");
   const startX = 20; // table left align
@@ -1084,6 +1080,454 @@ doc.registerFont(
 drawTemplate(doc);
 drawInvoiceContent(doc, order);
 
-
   doc.end();
 });
+
+
+
+
+
+
+
+
+
+
+// // // offarffer letter template 
+// const drawTemplate = (doc) => {
+//   try {
+//     const logoPath = path.join(
+//       process.cwd(),
+//       "OrderManagement/assets/aaklan-logo.png",
+//     );
+
+//     const MARGIN = 30;
+//     const PAGE_WIDTH = doc.page.width;
+//     const PAGE_HEIGHT = doc.page.height;
+//     const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+
+//     doc.save();
+//     doc.fillColor("#000").font("Noto");
+
+//     // ===== LOGO =====
+//     if (fs.existsSync(logoPath)) {
+//       doc.image(logoPath, 15, 15, { width: 120 });
+//     } else {
+//       doc.font("Noto-Bold").fontSize(14).text("Aaklan IT Solutions", 15, 25);
+//     }
+
+//     // ===== COMPANY TEXT (RIGHT ALIGN) =====
+//     doc
+//       .font("Noto-Bold")
+//       .fontSize(12)
+//       .text("Aaklan IT Solutions Pvt. Ltd.", MARGIN, 15, {
+//         width: CONTENT_WIDTH,
+//         align: "right",
+//       });
+
+//     doc
+//       .font("Noto")
+//       .fontSize(10)
+//       .text("IT-9(A), EPIP, IT Park Road, Sitapura", MARGIN, 30, {
+//         width: CONTENT_WIDTH,
+//         align: "right",
+//       })
+//       .text("Jaipur, Rajasthan - 302022", MARGIN, 42, {
+//         width: CONTENT_WIDTH,
+//         align: "right",
+//       });
+
+//     // ===== HEADER BAR (IMAGE STYLE) =====
+
+//     // Main orange bar
+//     doc.rect(0, 60, PAGE_WIDTH, 12).fill("#F4A300");
+
+//     // Dark blue right block
+//     const blueWidth = 90;
+//     doc.rect(PAGE_WIDTH - blueWidth, 60, blueWidth, 12).fill("#1F2A44");
+
+//     // Slanted stripes before blue block
+//     const stripeWidth = 12;
+//     const gap = 6;
+//     let stripeX = PAGE_WIDTH - blueWidth - 60;
+
+//     for (let i = 0; i < 4; i++) {
+//       doc
+//         .polygon(
+//           [stripeX, 60],
+//           [stripeX + stripeWidth, 60],
+//           [stripeX + stripeWidth - 6, 72],
+//           [stripeX - 6, 72],
+//         )
+//         .fill("#F4A300");
+
+//       stripeX += stripeWidth + gap;
+//     }
+
+//     // ================= FOOTER =================
+
+//     // Top orange strip
+//     doc.rect(0, PAGE_HEIGHT - 50, PAGE_WIDTH, 15).fill("#F4A300");
+
+//     // Disclaimer text
+//     doc
+//       .fontSize(8)
+//       .fillColor("#fff")
+//       .text(
+//         "*This is a system-generated document for review. Final validity requires company signature and stamp",
+//         MARGIN,
+//         PAGE_HEIGHT - 45,
+//         { align: "center", width: CONTENT_WIDTH },
+//       );
+
+//     // Dark footer background
+//     doc.rect(0, PAGE_HEIGHT - 35, PAGE_WIDTH, 35).fill("#1F2A44");
+
+//     // Footer text
+//     doc.fillColor("#fff").fontSize(9);
+
+//     doc.text("CIN: U72900RJ2021PTC072389", MARGIN, PAGE_HEIGHT - 28);
+
+//     doc.text("PAN: AAUCA6196N", MARGIN, PAGE_HEIGHT - 28, {
+//       width: CONTENT_WIDTH,
+//       align: "right",
+//     });
+
+//     doc.text(
+//       "+91 9571677609 | www.aaklan.com | hr@aaklan.com",
+//       0,
+//       PAGE_HEIGHT - 15,
+//       { align: "center", width: PAGE_WIDTH },
+//     );
+
+//     doc.restore();
+//   } catch (error) {
+//     console.log("Error in drawTemplate:", error.message);
+//   }
+// };
+
+// export const generateOfferLetterPDF = async (applicant, offerData) => {
+//   return new Promise(async (resolve, reject) => {
+//     try {
+//       const fileName = `Offer_Letter_${(applicant?.name || "Applicant").replace(/\s+/g, "_")}_${Date.now()}.pdf`;
+//       const filePath = path.join(process.cwd(), "temp", fileName);
+
+//       if (!fs.existsSync("temp")) fs.mkdirSync("temp");
+
+//       // CORRECTED: Don't use margins property - it doesn't exist in pdfkit
+//       const doc = new PDFDocument({
+//         size: "A4",
+//         margin: 0, // Set margin to 0 and handle margins manually
+//       });
+
+//       doc.pipe(fs.createWriteStream(filePath));
+
+//       doc.registerFont("Noto", "Helvetica");
+//       doc.registerFont("Noto-Bold", "Helvetica-Bold");
+
+//       // Draw template on first page
+//       drawTemplate(doc);
+
+//       // ===== PERFECT SYMMETRICAL MARGINS =====
+//       const MARGIN = 25;
+//       const CONTENT_X = MARGIN;
+//       const CONTENT_WIDTH = 595 - MARGIN * 2; // A4 width is 595 points
+
+//       // Set starting position after header
+//       doc.y = 90; // Start below the header bar
+
+//       // ===== TITLE =====
+//       doc.font("Noto-Bold").fontSize(16);
+
+//       const title = "OFFER LETTER";
+
+//       // Measure text width
+//       const textWidth = doc.widthOfString(title);
+
+//       // Center position calculate
+//       const centerX = doc.page.width / 2;
+//       const startX = centerX - textWidth / 2;
+//       const endX = centerX + textWidth / 2;
+
+//       // Draw title
+//       doc.text(title, 0, doc.y, { align: "center" });
+
+//       // Line just below text
+//       const lineY = doc.y - 5;
+
+//       doc
+//         .moveTo(startX, lineY)
+//         .lineTo(endX, lineY)
+//         .lineWidth(2)
+//         .stroke("#F4A300");
+
+//       doc.moveDown(1);
+
+//       doc.font("Noto").fontSize(12);
+
+//       // ===== Dear Name =====
+//       doc.text("Dear ", CONTENT_X, doc.y, {
+//         continued: true,
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//       });
+//       doc.font("Noto-Bold").text(offerData?.name || applicant?.name, {
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//       });
+
+//       doc.moveDown();
+
+//       // ===== MAIN PARA =====
+//       const role = offerData?.role || applicant?.appliedPosition;
+//       const joinDate = new Date(
+//         offerData?.dateOfJoining || applicant?.dateOfJoining,
+//       ).toLocaleDateString("en-US", {
+//         day: "numeric",
+//         month: "long",
+//         year: "numeric",
+//       });
+
+//       doc
+//         .font("Noto")
+//         .text(
+//           "Congratulations! Further to your application as a ",
+//           CONTENT_X,
+//           doc.y,
+//           {
+//             continued: true,
+//             width: CONTENT_WIDTH,
+//             align: "justify",
+//           },
+//         );
+
+//       doc.font("Noto-Bold").text(role + " ", {
+//         continued: true,
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//       });
+
+//       doc
+//         .font("Noto")
+//         .text(
+//           " with us and the subsequent selection process, we are delighted to offer you the role of ",
+//           {
+//             continued: true,
+//             width: CONTENT_WIDTH,
+//             align: "justify",
+//           },
+//         );
+
+//       doc.font("Noto-Bold").text(role + " ", {
+//         continued: true,
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//       });
+
+//       doc
+//         .font("Noto")
+//         .text(
+//           " in our organization. As per the agreed terms, you have to work Monday to Saturday (9 AM - 5 PM). The location of your initial reporting will be at Aaklan IT Solution Pvt. Ltd, IT-9A Sitapura, Jaipur. Your joining date will be ",
+//           {
+//             continued: true,
+//             width: CONTENT_WIDTH,
+//             align: "justify",
+//           },
+//         );
+
+//       doc.font("Noto-Bold").text(joinDate, {
+//         continued: true,
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//       });
+
+//       doc
+//         .font("Noto")
+//         .text(
+//           ". If you have any queries about your first day, send an email to hr@aaklan.com.",
+//           { width: CONTENT_WIDTH, align: "justify", lineGap: 3 },
+//         );
+
+//       doc.moveDown();
+
+//       // ===== DOCUMENTS =====
+//       doc.text("On your joining date, please bring:", CONTENT_X, doc.y, {
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//         lineGap: 3,
+//       });
+
+//       const documents = [
+//         "1. Copy of offer letter duly signed and dated by you.",
+//         "2. Self photographs (passport size, color with white background)",
+//         "3. One set of printouts of the completed onboarding forms & Originals.",
+//         "4. Aadhaar card xerox.",
+//         "5. Relieving documents from the most recent employer. (if applicable)",
+//         "6. Passport and Pan card xerox.",
+//         "7. Relevant Education Documents.",
+//         "8. Last 3 months pay/salary slip (if applicable).",
+//         "9. Police Verification.",
+//       ];
+
+//       documents.forEach((line) => {
+//         doc.text(line, CONTENT_X, doc.y, {
+//           width: CONTENT_WIDTH,
+//           align: "justify",
+//           lineGap: 3,
+//         });
+//       });
+
+//       doc.moveDown();
+
+//       // ===== PROBATION =====
+//       doc.text(
+//         "You will be on probation until your successful completion of the probationary period is confirmed in writing. The normal probation period is ",
+//         CONTENT_X,
+//         doc.y,
+//         {
+//           continued: true,
+//           width: CONTENT_WIDTH,
+//           align: "justify",
+//         },
+//       );
+
+//       doc.font("Noto-Bold").text(offerData?.probationPeriod + " ", {
+//         continued: true,
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//       });
+
+//       doc
+//         .font("Noto")
+//         .text(
+//           " but may be extended or confirmed earlier based on your performance and at your supervisor's discretion.",
+//           { width: CONTENT_WIDTH, align: "justify", lineGap: 3 },
+//         );
+
+//       doc.moveDown();
+
+//       // ===== SALARY =====
+//       doc.text("Your CTC Salary shall be Rs.", CONTENT_X, doc.y, {
+//         continued: true,
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//       });
+
+//       // Format salary with commas
+//       const formattedSalary = offerData?.netSalary
+//         ? offerData.netSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+//         : "1";
+
+//       doc.font("Noto-Bold").text(formattedSalary, {
+//         continued: true,
+//         width: CONTENT_WIDTH,
+//         align: "justify",
+//       });
+
+//       doc
+//         .font("Noto")
+//         .text("/- per month Your individual remuneration is strictly confidential.", {
+//           width: CONTENT_WIDTH,
+//           align: "justify",
+//           lineGap: 3,
+//         });
+
+//       doc.moveDown();
+
+//       doc.text(
+//         "You are expected to enter into an employment agreement, which details the scope, terms, and conditions of your work, the necessary training, and confidentiality obligations with our organization.",
+//         CONTENT_X,
+//         doc.y,
+//         { width: CONTENT_WIDTH, align: "justify", lineGap: 3 },
+//       );
+
+//       doc.moveDown();
+
+//       doc.text(
+//         "If you do not confirm your acceptance, this offer letter will be withdrawn. To confirm your acceptance, you are required to sign at the bottom of this document.",
+//         CONTENT_X,
+//         doc.y,
+//         { width: CONTENT_WIDTH, align: "justify", lineGap: 3 },
+//       );
+
+//       doc.moveDown();
+
+//       doc.text(
+//         "Welcome to Aaklan IT Solution Pvt. Ltd. We wish you a long, rewarding, and fulfilling career and look forward to your joining us.",
+//         CONTENT_X,
+//         doc.y,
+//         { width: CONTENT_WIDTH, align: "justify", lineGap: 3 },
+//       );
+
+//       // Check if we need a new page for signatures
+//       const pageHeight = 842; // A4 height in points
+//       const footerHeight = 85; // Space needed for footer
+
+//       if (doc.y > pageHeight - footerHeight) {
+//         // Add new page and draw footer template
+//         doc.addPage();
+//         drawTemplate(doc);
+//         doc.y = 110; // Reset position after header
+//       }
+
+//       // ===== SIGNATURE =====
+//       doc.moveDown(3);
+
+//       const y = doc.y;
+
+//       // Bold signatures
+//       doc.font("Noto-Bold").text("Yours Sincerely", CONTENT_X, y);
+
+//       doc.font("Noto").text("Hr Manager", CONTENT_X, y + 20);
+
+//       doc
+//         .font("Noto")
+//         .text("Aaklan IT Solutions Pvt. Ltd. Jaipur", CONTENT_X, y + 40);
+
+//       // Right side signatures
+//       doc
+//         .font("Noto-Bold")
+//         .text("Date:", CONTENT_X + CONTENT_WIDTH - 200, y + 20);
+
+//       doc
+//         .font("Noto-Bold")
+//         .text("Signature:", CONTENT_X + CONTENT_WIDTH - 200, y + 40);
+
+//       doc.end();
+
+//       resolve(filePath);
+//     } catch (err) {
+//       console.error("Error generating PDF:", err);
+//       reject(err);
+//     }
+//   });
+// };
+
+
+// export const generateInvoice = async () => {
+//   try {
+//     // Dummy test data
+//     const dummyApplicant = {
+//       name: "Ujjwal Kumar",
+//       appliedPosition: "Full Stack Developer",
+//       dateOfJoining: new Date("2025-11-20"),
+//     };
+
+//     const dummyOfferData = {
+//       role: "Full Stack Developer",
+//       netSalary: 14000,
+//       probationPeriod: "6 months",
+//       dateOfJoining: new Date("2025-11-20"),
+//     };
+
+//     // Generate PDF with dummy data
+//     const pdfPath = await generateOfferLetterPDF(
+//       dummyApplicant,
+//       dummyOfferData,
+//     );
+
+//     return pdfPath;
+//   } catch (error) {
+//     console.error("Test failed:", error);
+//     throw error;
+//   }
+// };

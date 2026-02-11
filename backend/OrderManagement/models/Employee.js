@@ -345,14 +345,14 @@ employeeSchema.methods.isReadyForVerification = function () {
 };
 
 // FIXED: Pre-save middleware with error handling
-employeeSchema.pre('save', function (next) {
+employeeSchema.pre('save', function () {
     try {
         this.calculateCompletion();
         this.lastProfileUpdate = new Date();
-        next();
+        // next();
     } catch (error) {
         console.error('Error in pre-save middleware:', error);
-        next();
+        // next();
     }
 });
 

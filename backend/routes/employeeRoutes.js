@@ -1,42 +1,45 @@
-import express from "express";
-import { bulkCreateStudents, createStudent, getEmployeeById, getEmployees } from "../controllers/employeeController.js";
-import { protect } from "../middleware/auth.js";
-import { allowRoles } from "../middleware/role.js";
-import { schoolScope } from "../middleware/schoolScope.js";
-import { upload } from "../middleware/upload.js";
+// import express from "express";
+// import { authenticate } from '../middleware/auth.js';
+// import { requireAdminOrHR } from '../middleware/profileCompletion.js';
+// import { createEmployee, getAllEmployees } from "../OrderManagement/controllers/employeeController.js";
 
-const router = express.Router();
+// const router = express.Router();
 
-/* ================= CREATE STUDENT ================= */
-router.post(
-  "/student",
-  protect,
-  allowRoles("employee"),
-  schoolScope,
-  createStudent
-);
+// /* ================= CREATE STUDENT ================= */
 
-router.post(
-  "/student/bulk",
-  protect,
-  allowRoles("employee"),
-  upload.single("file"),
-  bulkCreateStudents
-);
-
-router.get(
-  "/",
-  protect,
-  allowRoles("admin","employee"),
-  getEmployees
-);
-
-router.get(
-  "/:id",
-  protect,
-  allowRoles("admin","employee"),
-  getEmployeeById
-);
+// router.post('/hr/create', authenticate, requireAdminOrHR, createEmployee);
+// router.get('/hr/employees', authenticate, requireAdminOrHR, getAllEmployees);
 
 
-export default router;
+// // router.post(
+// //   "/student",
+// //   protect,
+// //   allowRoles("employee"),
+// //   schoolScope,
+// //   createStudent
+// // );
+
+// // router.post(
+// //   "/student/bulk",
+// //   protect,
+// //   allowRoles("employee"),
+// //   upload.single("file"),
+// //   bulkCreateStudents
+// // );
+
+// // router.get(
+// //   "/",
+// //   protect,
+// //   allowRoles("admin","employee"),
+// //   getEmployees
+// // );
+
+// // router.get(
+// //   "/:id",
+// //   protect,
+// //   allowRoles("admin","employee"),
+// //   getEmployeeById
+// // );
+
+
+// export default router;
