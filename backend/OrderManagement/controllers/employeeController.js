@@ -4,6 +4,10 @@ import User from "../models/User.js";
 import UserActivity from "../models/UserActivity.js";
 import EmployeePosting from "../models/EmployeePosting.js";
 import UserRole from "../models/UserRole.js";
+import XLSX from "xlsx";
+import fs from "fs";
+import csv from "csv-parser";
+
 
 // HR creates employee with basic info
 export const createEmployee = async (req, res) => {
@@ -326,141 +330,196 @@ export const registerStudent = async (req, res) => {
       message: "Server error",
     });
   }
+};  
+
+export const bulkRegisterStudentsExcel = async (req, res) => {
+  try {
+
+    if (req.user.role !== "employee") {
+      return res.status(403).json({
+        message: "Only employees can register students",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Excel file required",
+      });
+    }
+
+    // Find employee
+    const employee = await Employee.findOne({ user: req.user._id });
+
+    const posting = await EmployeePosting.findOne({
+      employee: employee._id,
+      isActive: true,
+    });
+
+    const schoolId = posting.school;
+
+    /* ===== Read Excel ===== */
+
+    const workbook = XLSX.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    let created = 0;
+    let failed = [];
+
+    for (const row of rows) {
+      try {
+
+        const { name, email, password, grade } = row;
+
+        if (!name || !email || !password || !grade) {
+          failed.push({ ...row, reason: "Missing fields" });
+          continue;
+        }
+
+        if (password.length < 6) {
+          failed.push({ ...row, reason: "Weak password" });
+          continue;
+        }
+
+        const exists = await User.findOne({ email });
+        if (exists) {
+          failed.push({ ...row, reason: "Email exists" });
+          continue;
+        }
+
+        // Create user
+        const user = await User.create({
+          name,
+          email,
+          passwordHash: password,
+          role: "student",
+        });
+
+        // Student
+        await Student.create({
+          user: user._id,
+          grade,
+          school: schoolId,
+          createdByEmployee: employee._id,
+        });
+
+        // Role
+        await UserRole.create({
+          user: user._id,
+          role: "student",
+          assignedBy: req.user._id,
+          isActive: true,
+        });
+
+        created++;
+
+      } catch (err) {
+        failed.push({ ...row, reason: "Creation failed" });
+      }
+    }
+
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      success: true,
+      total: rows.length,
+      created,
+      failedCount: failed.length,
+      failed,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
-// import Student from "../models/student.js";
-// import fs from "fs";
-// import csv from "csv-parser";
-// import XLSX from "xlsx";
-// import UserRole from "../models/UserRole.js";
-// export const createStudent = async (req,res)=>{
-//   try{
-//     const { name,email,password } = req.body;
 
-//     const user = await User.create({
-//       name,
-//       email,
-//       passwordHash: password,
-//       role:"student"
-//     });
+export const getAllStudents = async (req, res) => {
+  try {
 
-//     const student = await Student.create({
-//       user:user._id,
-//       school:req.schoolId // auto from middleware
-//     });
+    const { page = 1, limit = 10, search = "", grade } = req.query;
 
-//     res.json({
-//       success:true,
-//       login:{
-//         email,
-//         password
-//       },
-//       student
-//     });
+    // Only employee allowed
+    if (req.user.role !== "employee") {
+      return res.status(403).json({
+        message: "Only employees can view students",
+      });
+    }
 
-//   }catch(err){
-//     res.status(500).json({msg:err.message});
-//   }
-// };
+    // Find employee
+    const employee = await Employee.findOne({ user: req.user._id });
 
-// export const bulkCreateStudents = async (req,res)=>{
+    if (!employee) {
+      return res.status(400).json({
+        message: "Employee profile not found",
+      });
+    }
 
-//   if(!req.file){
-//     return res.status(400).json({msg:"CSV file required"});
-//   }
+    // Active posting
+    const posting = await EmployeePosting.findOne({
+      employee: employee._id,
+      isActive: true,
+    });
 
-//   let created=0;
-//   let skipped=0;
-//   let total=0;
-//   const failedRows=[];
+    if (!posting) {
+      return res.status(400).json({
+        message: "Employee not assigned to any school",
+      });
+    }
 
-//   try{
+    const schoolId = posting.school;
 
-//     const stream = fs.createReadStream(req.file.path)
-//       .pipe(csv());
+    /* ===== Query Build ===== */
 
-//     for await (const row of stream){
-//       total++;
+    const query = { school: schoolId };
 
-//       if(!row.email || !row.name || !row.password){
-//         skipped++;
-//         failedRows.push({
-//           ...row,
-//           reason:"Missing fields"
-//         });
-//         continue;
-//       }
+    if (grade) {
+      query.grade = grade;
+    }
 
-//       const exists = await User.findOne({email:row.email});
+    /* ===== Search by student name/email ===== */
 
-//       if(exists){
-//         skipped++;
-//         failedRows.push({
-//           ...row,
-//           reason:"Duplicate email"
-//         });
-//         continue;
-//       }
+    let userFilter = {};
 
-//       const user = await User.create({
-//         name:row.name.trim(),
-//         email:row.email.trim(),
-//         passwordHash:row.password.trim(),
-//         role:"student"
-//       });
+    if (search) {
+      userFilter = {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
+        ],
+      };
+    }
 
-//       await Student.create({
-//         user:user._id,
-//         school:req.schoolId
-//       });
+    /* ===== Fetch ===== */
 
-//       created++;
-//     }
+    const students = await Student.find(query)
+      .populate({
+        path: "user",
+        match: userFilter,
+        select: "name email",
+      })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
 
-//     // delete uploaded CSV
-//     fs.unlinkSync(req.file.path);
+    // Remove null users (from search filter)
+    const filtered = students.filter(s => s.user);
 
-//     /* ===== If failures exist → send Excel ===== */
+    const total = await Student.countDocuments(query);
 
-//     if(failedRows.length>0){
+    res.json({
+      success: true,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      data: filtered,
+    });
 
-//       const wb = XLSX.utils.book_new();
-//       const ws = XLSX.utils.json_to_sheet(failedRows);
-
-//       XLSX.utils.book_append_sheet(wb,ws,"Failed");
-
-//       const buffer = XLSX.write(wb,{
-//         type:"buffer",
-//         bookType:"xlsx"
-//       });
-
-//       res.setHeader(
-//         "Content-Disposition",
-//         "attachment; filename=failed_students.xlsx"
-//       );
-
-//       res.type(
-//         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-//       );
-
-//       return res.send(buffer);
-//     }
-
-//     /* ===== If no failures → normal JSON ===== */
-
-//     res.json({
-//       success:true,
-//       total,
-//       created,
-//       skipped
-//     });
-
-//   }catch(err){
-
-//     if(req.file && fs.existsSync(req.file.path)){
-//       fs.unlinkSync(req.file.path);
-//     }
-
-//     res.status(500).json({msg:err.message});
-//   }
-// };
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
