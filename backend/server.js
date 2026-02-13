@@ -33,32 +33,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());
-// import authRoutes from "./routes/authRoutes.js";
-// import adminRoutes from "./routes/adminRoutes.js";
-// import employeeRoutes from "./routes/employeeRoutes.js";
-// import studentRoutes from "./routes/studentRoutes.js";
-// import schoolRoutes from "./routes/schoolRoutes.js";
-// import examRoutes from "./routes/examRoutes.js";
-
-
-// app.use("/api/auth",authRoutes);
-// app.use("/api/admin",adminRoutes);
-// app.use("/api/employee",employeeRoutes);
-// app.use("/api/student",studentRoutes);
-// app.use("/api/schools",schoolRoutes);
-// app.use("/api/exams",examRoutes);
 
 import schoolRoutes from "./OrderManagement/routes/schoolRoutes.js";
 import authRoutes from "./OrderManagement/routes/authRoutes.js";
 import ordersRoutes from "./OrderManagement/routes/orderRoutes.js";
 import employeeRoutes from "./OrderManagement/routes/employeeRoutes.js";
 import employeePostingRoutes from "./OrderManagement/routes/employeePostingRoutes.js";
+import SchoolInvoiceRoutes from "./OrderManagement/routes/SchoolInvoice/SchoolInvoiceRoutes.js";
+import leaveRoutes from "./OrderManagement/routes/SchoolInvoice/leaveRoutes.js";
 app.use('/api/schools', schoolRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use("/api/employee",employeeRoutes);
 app.use('/api/employee-postings', employeePostingRoutes);
 
+
+app.use("/api/leaves", leaveRoutes);
+
+
+app.use("/api/invoices", SchoolInvoiceRoutes);
 // ======================
 // Health Check
 // ======================

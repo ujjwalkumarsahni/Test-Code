@@ -18,7 +18,26 @@ const getStatusMessage = (status) => {
 };
 // Create new employee posting
 export const createEmployeePosting = asyncHandler(async (req, res) => {
-  let { employee, school, startDate, endDate, status, remark } = req.body;
+  let { 
+  employee,
+  school,
+  startDate,
+  endDate,
+  status,
+  remark,
+  monthlyBillingSalary,
+  tdsPercent,
+  gstPercent
+} = req.body;
+
+
+if (!monthlyBillingSalary) {
+  return res.status(400).json({
+    success:false,
+    message:"monthlyBillingSalary is required"
+  });
+}
+
 
   // Check if employee exists
   const employeeExists = await Employee.findById  (employee);
@@ -100,6 +119,11 @@ export const createEmployeePosting = asyncHandler(async (req, res) => {
     endDate,
     status: status || "continue",
     remark,
+
+    monthlyBillingSalary,
+  tdsPercent: tdsPercent || 0,
+  gstPercent: gstPercent || 0,
+  
     createdBy: req.user._id,
     updatedBy: req.user._id,
   });

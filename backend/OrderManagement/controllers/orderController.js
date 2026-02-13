@@ -365,9 +365,7 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
     return res.json({ success: true, data: order });
   }
 
-  // For "partial" status - validation
   if (paymentStatus === "partial") {
-    // Cannot go to partial if already paid
     if (order.paymentStatus === "paid") {
       throw new Error("Cannot change to partial once order is fully paid");
     }
@@ -377,14 +375,13 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
       throw new Error("Valid paid amount required");
     }
 
-    // Prevent overpayment
     if (amount > order.remainingAmount) {
       throw new Error(
         `Amount cannot exceed remaining balance of ${order.remainingAmount}`,
       );
     }
 
-    // Add to history
+    // History
     order.paymentHistory.push({
       amount,
       method: paymentMethod || "cash",
@@ -393,15 +390,13 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
       date: new Date(),
     });
 
-    // Update amounts
+    // Amount update
     order.paidAmount += amount;
-    order.remainingAmount = order.totalAmount - order.paidAmount;
+    order.remainingAmount = Math.max(0, order.totalAmount - order.paidAmount);
 
-    // Auto-check if becomes paid
-    if (order.remainingAmount <= 0) {
+    // Status logic
+    if (order.remainingAmount === 0) {
       order.paymentStatus = "paid";
-      order.paidAmount = order.totalAmount; // Ensure exact match
-      order.remainingAmount = 0;
     } else {
       order.paymentStatus = "partial";
     }
@@ -635,24 +630,24 @@ const drawTemplate = (doc) => {
     process.cwd(),
     "OrderManagement/assets/aaklan-logo.png",
   );
- doc.font("Noto");
+  doc.font("Noto");
   doc.fillColor("#000");
   // Header
   doc.image(logoPath, 10, 10, { width: 120 });
 
   // Company Name Bold
-doc
-  .font("Noto-Bold")
-  .fontSize(12)
-  .fillColor("#000")
-  .text("Aaklan IT Solutions Pvt. Ltd.", 400, 15);
+  doc
+    .font("Noto-Bold")
+    .fontSize(12)
+    .fillColor("#000")
+    .text("Aaklan IT Solutions Pvt. Ltd.", 400, 15);
 
-// Address Normal
-doc
-  .font("Noto")
-  .fontSize(10)
-  .text("IT-9(A), EPIP, IT Park Road, Sitapura", 400, 28)
-  .text("Jaipur, Rajasthan - 302022", 400, 38);
+  // Address Normal
+  doc
+    .font("Noto")
+    .fontSize(10)
+    .text("IT-9(A), EPIP, IT Park Road, Sitapura", 400, 28)
+    .text("Jaipur, Rajasthan - 302022", 400, 38);
 
   // ===== EXACT MATCH HEADER BAR =====
 
@@ -711,7 +706,6 @@ doc
         align: "center",
       },
     );
-
 };
 
 // ================= TABLE HEADER =================
@@ -1066,33 +1060,27 @@ export const generateInvoice = asyncHandler(async (req, res) => {
 
   doc.pipe(res);
 
-// REGISTER FONTS FIRST
-doc.registerFont(
-  "Noto",
-  path.join(process.cwd(),"OrderManagement/assets/fonts/NotoSans-Regular.ttf")
-);
+  // REGISTER FONTS FIRST
+  doc.registerFont(
+    "Noto",
+    path.join(
+      process.cwd(),
+      "OrderManagement/assets/fonts/NotoSans-Regular.ttf",
+    ),
+  );
 
-doc.registerFont(
-  "Noto-Bold",
-  path.join(process.cwd(),"OrderManagement/assets/fonts/NotoSans-Bold.ttf")
-);
+  doc.registerFont(
+    "Noto-Bold",
+    path.join(process.cwd(), "OrderManagement/assets/fonts/NotoSans-Bold.ttf"),
+  );
 
-drawTemplate(doc);
-drawInvoiceContent(doc, order);
+  drawTemplate(doc);
+  drawInvoiceContent(doc, order);
 
   doc.end();
 });
 
-
-
-
-
-
-
-
-
-
-// // // offarffer letter template 
+// // // offarffer letter template
 // const drawTemplate = (doc) => {
 //   try {
 //     const logoPath = path.join(
@@ -1501,7 +1489,6 @@ drawInvoiceContent(doc, order);
 //     }
 //   });
 // };
-
 
 // export const generateInvoice = async () => {
 //   try {
